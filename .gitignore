@@ -1,7 +1,8 @@
 *build
 .vscode
-MPC_Controller/log/**
-MPC_Controller/PolicyRollout/*.csv
+HKDMPC/log/**
+HKDMPC/PolicyRollout/*.csv
+MHPC/log/**
 lcmtypes/java
 lcmtypes/file_list.txt
 lcmtypes/cpp/*
