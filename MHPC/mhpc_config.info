@@ -1,0 +1,11 @@
+config
+{
+    plan_dur_wb     0.25
+    plan_dur_srb    0.5
+    dt_mpc          0.01
+    dt_wb           0.01
+    dt_srb          0.05
+    BG_alpha        5.0
+    BG_beta         0.0
+    referenceFile  handCraft/inplace_trot
+}

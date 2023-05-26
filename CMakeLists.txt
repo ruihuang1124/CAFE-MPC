@@ -25,6 +25,7 @@ include_directories("common")
 # Add subdirectories
 add_subdirectory(HSDDPSolver)
 add_subdirectory(HKDMPC)
+add_subdirectory(MHPC)
 
 
 

@@ -1,0 +1,11 @@
+config
+{
+    plan_dur_wb     0.0
+    plan_dur_srb    3.0
+    dt_mpc          0.01
+    dt_wb           0.01
+    dt_srb          0.05
+    BG_alpha        0.0
+    BG_beta         0.0
+    referenceFile   trot
+}
