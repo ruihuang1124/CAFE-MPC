@@ -1,0 +1,11 @@
+*build
+.vscode
+MPC_Controller/log/**
+MPC_Controller/PolicyRollout/*.csv
+lcmtypes/java
+lcmtypes/file_list.txt
+lcmtypes/cpp/*
+lcmtypes/lcmtypes/*
+lcmtypes/python/*
+
+
