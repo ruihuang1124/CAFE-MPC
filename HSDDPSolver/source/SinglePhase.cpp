@@ -286,10 +286,8 @@ void SinglePhase<T, xs, us, ys>::compute_cost(const HSDDP_OPTION& option)
 
     /* update terminal cost with terminal constraint using AL */
     if (option.AL_active)
-    {
-        constraintContainer.get_terminal_constraints(tconstrsData);
-        constraintContainer.get_al_params(al_params);
-        update_terminal_cost_with_tconstr(tconstrsData, al_params);
+    {        
+        update_terminal_cost_with_tconstr();
     }
     actual_cost += tcostData->Phi;   
 }
@@ -330,10 +328,8 @@ void SinglePhase<T, xs, us, ys>::LQ_approximation(HSDDP_OPTION &option)
     if (option.AL_active)
     {
          /* compute terminal constraint partial*/
-        constraintContainer.compute_terminal_constraints_par(X->at(k));
-        constraintContainer.get_terminal_constraints(tconstrsData);
-        constraintContainer.get_al_params(al_params);
-        update_terminal_cost_par_with_tconstr(tconstrsData, al_params);
+        constraintContainer.compute_terminal_constraints_par(X->at(k));                
+        update_terminal_cost_par_with_tconstr();
     }
 }
 
@@ -488,63 +484,29 @@ void SinglePhase<T, xs, us, ys>::update_running_cost_with_smooth()
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_terminal_cost_with_tconstr(vector<TConstrData<T, xs>> &tconstrsData,
-                                                                   vector<AL_Param_Struct<T>> &al_params,
-                                                                   int flag)
+void SinglePhase<T, xs, us, ys>::update_terminal_cost_with_tconstr()
 {
-    for (size_t i = 0; i < tconstrsData.size(); i++)
+    const auto& tConstraints = constraintContainer.terminalConstraints;
+    for (size_t i = 0; i < tConstraints.size(); i++)
     {
-        const T &sigma = al_params[i].sigma;
-        const T &lambda = al_params[i].lambda;
-        const auto &e = tconstrsData[i];
-
-        switch (flag)
-        {
-        case 1:
-            tcostData->Phi += .5 * sigma * pow(e.h, 2) + lambda * e.h;
-            break;
-        case 2:
-            tcostData->Phix += sigma * e.hx * e.h + lambda * e.hx;
-            // Gauss Newton method to approximate the exact hessian hxx = hx*hx.transpose
-            tcostData->Phixx += sigma * (e.hx * e.hx.transpose() + e.h * e.hx * e.hx.transpose()) + lambda * e.hx * e.hx.transpose();
-            break;
-        case 3:
-            tcostData->Phi += .5 * sigma * pow(e.h, 2) + lambda * e.h;
-            tcostData->Phix += sigma * e.hx * e.h + lambda * e.hx;
-            // Gauss Newton method to approximate the exact hessian hxx = hx*hx.transpose
-            tcostData->Phixx += sigma * (e.hx * e.hx.transpose() + e.h * e.hx * e.hx.transpose()) + lambda * e.hx * e.hx.transpose();
-            break;
-        }
-    }
+        tConstraints[i]->compute_AL_cost();
+        const T& AL_cost = tConstraints[i]->AL_cost;
+        tcostData->Phi += AL_cost;
+    }    
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_terminal_cost_with_tconstr(vector<TConstrData<T, xs>> &tconstrsData,
-                                                                   vector<AL_Param_Struct<T>> &al_params)
+void SinglePhase<T, xs, us, ys>::update_terminal_cost_par_with_tconstr()
 {
-    for (size_t i = 0; i < tconstrsData.size(); i++)
+    const auto& tConstraints = constraintContainer.terminalConstraints;
+    for (size_t i = 0; i < tConstraints.size(); i++)
     {
-        const T &sigma = al_params[i].sigma;
-        const T &lambda = al_params[i].lambda;
-        const auto &e = tconstrsData[i];
+        tConstraints[i]->compute_AL_partials();
+        const auto& AL_gradient = tConstraints[i]->AL_gradient;
+        const auto& AL_hessian = tConstraints[i]->AL_hessian;
 
-        tcostData->Phi += .5 * sigma * pow(e.h, 2) + lambda * e.h;
-    }
-}
-
-template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_terminal_cost_par_with_tconstr(vector<TConstrData<T, xs>> &tconstrsData,
-                                                                       vector<AL_Param_Struct<T>> &al_params)
-{
-    for (size_t i = 0; i < tconstrsData.size(); i++)
-    {
-        const T &sigma = al_params[i].sigma;
-        const T &lambda = al_params[i].lambda;
-        const auto &e = tconstrsData[i];
-
-        tcostData->Phix += sigma * e.hx * e.h + lambda * e.hx;
-        // Gauss Newton method to approximate the exact hessian hxx = hx*hx.transpose
-        tcostData->Phixx += sigma * (e.hx * e.hx.transpose() + e.h * e.hx * e.hx.transpose()) + lambda * e.hx * e.hx.transpose();
+        tcostData->Phix += AL_gradient;
+        tcostData->Phixx += AL_hessian;
     }
 }
 

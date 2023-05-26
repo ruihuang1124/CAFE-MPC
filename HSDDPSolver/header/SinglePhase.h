@@ -187,16 +187,11 @@ private:
     void update_running_cost_par_with_pconstr(RCostData<T,xs,us,ys>& rcost,
                                           vector<IneqConstrData<T,xs,us,ys>>& pconstrsData,
                                           vector<REB_Param_Struct<T>>& reb_params);                                                                                        
-    void update_running_cost_with_smooth();
+    void update_running_cost_with_smooth();    
 
-    void update_terminal_cost_with_tconstr(vector<TConstrData<T, xs>>& tconstrsData,
-                                           vector<AL_Param_Struct<T>>& al_params,
-                                           int flag);
-    void update_terminal_cost_with_tconstr(vector<TConstrData<T, xs>>& tconstrsData,
-                                           vector<AL_Param_Struct<T>>& al_params);
-    void update_terminal_cost_par_with_tconstr(vector<TConstrData<T, xs>>& tconstrsData,
-                                           vector<AL_Param_Struct<T>>& al_params);          
+    void update_terminal_cost_with_tconstr();           
 
+    void update_terminal_cost_par_with_tconstr(); 
                                                                                                                          
 
 private:

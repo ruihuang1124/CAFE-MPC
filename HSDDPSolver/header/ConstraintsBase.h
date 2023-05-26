@@ -230,13 +230,17 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef VecM<T, xs_> State;	
 	
-    enum {xs = xs_};
+    // enum {xs = xs_};
 	size_t size;
 	std::string name;
 	std::vector<TConstrData<T, xs_>> data;	
 	std::vector<AL_Param_Struct<T>> params;
 	AL_Param_Struct<T> param_init;
 	T max_violation;
+
+	T AL_cost;
+	VecM<T, xs_> AL_gradient;
+	MatMN<T, xs_, xs_> AL_hessian;
 
 	TerminalConstraintBase(){size=0;}
 	TerminalConstraintBase(const std::string& name_){size = 0; name = name_;}
@@ -253,7 +257,7 @@ public:
 	void resize_data(){
 		data.resize(size);
 	}
-	void update_constraint_size(int size_){
+	void update_constraint_size(size_t size_){
 		size = size_;
 	}
 	void initialize_params(){
@@ -271,13 +275,12 @@ public:
 		// initialize_params(param_init);
 		for (auto &param : params)
 		{
-			param.sigma = param_init.sigma;
-			// param.lambda = 0;
+			param.sigma = param_init.sigma;			
 		}
 		
 	}
 	void update_params(T thresh, T beta){
-		for (int i = 0; i < size; i++)
+		for (size_t i = 0; i < size; i++)
 		{// for each constraint
 			if (fabs(data[i].h) < thresh) // if constraint satisfied, do nothing
 			{
@@ -286,7 +289,7 @@ public:
 			if (fabs(data[i].h) > 0.01) // if too large, increase penalty
 			{
 				params[i].update_penalty(beta);
-				params[i].sigma = std::min(params[i].sigma, 1e3);
+				params[i].sigma = std::min(params[i].sigma, 1e4);
 			}else // if not too large, update Lagrange multiplier
 			{
 				params[i].update_Lagrange(data[i].h);
@@ -301,6 +304,32 @@ public:
 		}
 		
 	}
+	void compute_AL_cost(){
+		AL_cost = 0;
+		for (size_t i = 0; i < size; i++)
+		{
+			const T & sigma = params[i].sigma;
+			const T & lambda = params[i].lambda;
+			const T & h = data[i].h;
+
+			AL_cost += 0.5 * sigma * h*h;
+			AL_cost += lambda * h;
+		}		
+	}
+	void compute_AL_partials(){
+		AL_gradient.setZero();
+		AL_hessian.setZero();
+		for (size_t i = 0; i < size; i++)
+		{
+			const T & sigma = params[i].sigma;
+			const T & lambda = params[i].lambda;
+			const T & h = data[i].h;
+			const auto & hx = data[i].hx;			
+			
+			AL_gradient += (sigma * h + lambda) * hx;			;
+			AL_hessian += (sigma*(1+h) + lambda) * (hx * hx.transpose());			
+		}	
+	}
 	// call uppdate_max_violation in compute_violation
 	virtual void compute_violation(const State&) = 0;
 	virtual void compute_partial(const State&) = 0;
@@ -314,11 +343,11 @@ public:
     typedef VecM<T, us> Contrl;
     typedef VecM<T, ys> Output;
 
-	std::vector<std::shared_ptr<PathConstraintBase<T, xs, us, ys>>> pathConstraints;
-	std::vector<std::shared_ptr<TerminalConstraintBase<T, xs>>> terminalConstraints;
-
-	T max_pconstr;
-	T max_tconstr;
+	ConstraintContainer():pcontrs_size(0), 
+						  tconstr_size(0),
+						  max_tconstr(0.0),
+						  max_pconstr(0.0)
+						  {}
 
 public:
 
@@ -331,38 +360,37 @@ public:
 		tconstr_size += terminalConstraint_->size;
 	}
 	// Get the name and size information for all path constraints
-	void get_pathConstraintsInfo(std::vector<std::string>& name, std::vector<int>& size_){
+	void get_pathConstraintsInfo(std::vector<std::string>& name, std::vector<size_t>& size_){
 		for (auto constraint : pathConstraints)
 		{
 			name.push_back(constraint->name);
 			size_.push_back(constraint->size);
-		}
-		
+		}		
 	}
 	// Get the name and size information for all terminal constraints
-	void get_terminalConstraintsInfo(std::vector<std::string>& name, std::vector<int>& size_){
-		for (auto constraint : terminalConstraints){
+	void get_terminalConstraintsInfo(std::vector<std::string>& name, std::vector<size_t>& size_){
+		for (const auto& constraint : terminalConstraints){
 			name.push_back(constraint->name);
 			size_.push_back(constraint->size);
 		}
 	}	
 	void compute_path_constraints(const State& x, const Contrl& u, const Output& y, int k){
-		for (auto pathConstraint : pathConstraints){
+		for (auto& pathConstraint : pathConstraints){
 			pathConstraint->compute_violation(x,u,y,k);
 		}
 	}
 	void compute_path_constraints_par(const State& x, const Contrl& u, const Output& y, int k){
-		for (auto pathConstraint : pathConstraints){
+		for (auto& pathConstraint : pathConstraints){
 			pathConstraint->compute_partial(x,u,y,k);
 		}
 	}
 	void compute_terminal_constraints(const State& x){
-		for (auto terminalConstraint : terminalConstraints){
+		for (auto& terminalConstraint : terminalConstraints){
 			terminalConstraint->compute_violation(x);
 		}
 	}
 	void compute_terminal_constraints_par(const State& x){
-		for (auto terminalConstraint : terminalConstraints){
+		for (auto& terminalConstraint : terminalConstraints){
 			terminalConstraint->compute_partial(x);
 		}
 	}
@@ -384,6 +412,7 @@ public:
 			append_vector(tconstrs_data, terminalConstraint->data);
 		}		
 	}	
+
 	T get_max_pconstrs(){
 		max_pconstr = 0;
 		for (auto pathConstraint : pathConstraints)
@@ -463,8 +492,14 @@ public:
 	}	
 
 public:
-	size_t pcontrs_size = 0;
-	size_t tconstr_size = 0;
+	std::vector<std::shared_ptr<PathConstraintBase<T, xs, us, ys>>> pathConstraints;
+	std::vector<std::shared_ptr<TerminalConstraintBase<T, xs>>> terminalConstraints;
+
+	T max_pconstr;
+	T max_tconstr;
+
+	size_t pcontrs_size;
+	size_t tconstr_size;
 };
 
 #endif // CONSTRAINT_BASE_H
