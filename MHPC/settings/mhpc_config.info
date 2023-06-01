@@ -1,0 +1,10 @@
+config
+{
+    plan_dur_wb     0.24
+    plan_dur_srb    0.35
+    dt_mpc          0.02
+    dt_wb           0.01
+    dt_srb          0.05
+    BG_alpha        10.0    
+    referenceFile   gaitLib/bounding
+}
