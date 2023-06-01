@@ -298,7 +298,6 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef VecM<T, xs_> State;	
 	
-    // enum {xs = xs_};
 	size_t size;
 	std::string name;
 	std::vector<TConstrData<T, xs_>> data;	

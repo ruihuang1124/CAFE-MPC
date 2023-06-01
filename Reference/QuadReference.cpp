@@ -37,6 +37,11 @@ void QuadReference::step(float dt_sim)
         k_cur++;
         t_cur += dt;
 
+        if (k_cur+sz+1 >= tp_data.size())
+        {            
+            printf("Out of scope of the top-level data \n");
+        }
+        
         data.pop_front();        
         data.push_back(tp_data[k_cur + sz]);
 
@@ -70,11 +75,11 @@ QuadAugmentedState *QuadReference::get_a_reference_ptr_at_t(float t)
     
 
     // If queried time reaches the end, use the last element
-    if (k > sz)
+    if (k >= sz)
     {
         printf("warning: queried reference out of scope \n");
         printf("queried time = %f \n\n", t + t_cur);
-        k = sz;
+        k = sz-1;
     }
     return data.get_ptr(k);
 }
@@ -89,11 +94,11 @@ void QuadReference::get_contact_at_t(VecM<int, 4> &contact, float t)
 
     if (t - k*dt > 0.5*dt) k ++; //avoid floating point precision problem
 
-    if (k > sz)
+    if (k >= sz)
     {        
         printf("warning: queried reference out of scope \n");
         printf("queried time = %f \n\n", t + t_cur);        
-        k = sz;
+        k = sz-1;
     }
     
     contact = data[k].contact;
@@ -108,11 +113,11 @@ void QuadReference::get_contact_duration_at_t(VecM<double, 4>& contact_dur, floa
 
     if (t - k*dt > 0.5*dt) k ++; //avoid floating point precision problem
 
-    if (k > sz)
+    if (k >= sz)
     {
         printf("warning: queried reference out of scope \n");
         printf("queried time at %f \n\n", t + t_cur);
-        k = sz;
+        k = sz-1;
     }
     
     contact_dur = data[k].status_dur;
@@ -293,12 +298,10 @@ void QuadReference::reorder_states()
 
         /* reorder body state. original: [eul, pos, omega, vWorld]. reordered: [pos, eul, vWorld, eul_rate] */
         state_reordered.body_state << state_org.body_state.segment<3>(3), state_org.body_state.head<3>(),
-                                      state_org.body_state.tail<3>(), state_org.body_state.segment<3>(6);
-        state_reordered.body_state[2] = 0.25;       
-        // state_reordered.body_state[6] = 1.0;                                      
+                                      state_org.body_state.tail<3>(), state_org.body_state.segment<3>(6);                
+        
         /* flip the right and left legs */
         state_reordered.qJ << state_org.qJ.segment<3>(3), state_org.qJ.head<3>(), state_org.qJ.tail<3>(), state_org.qJ.segment<3>(6);       
-        // state_reordered.qJ << Vec3<double>(0, -0.8, 1.6).replicate<4,1>();
 
         state_reordered.qJd.setZero();
         state_reordered.foot_placements << state_org.foot_placements.segment<3>(3), state_org.foot_placements.head<3>(), 
@@ -309,7 +312,7 @@ void QuadReference::reorder_states()
         state_reordered.torque << state_org.torque.segment<3>(3), state_org.torque.head<3>(), state_org.torque.tail<3>(), state_org.torque.segment<3>(6);
 
         state_reordered.contact << state_org.contact[1], state_org.contact[0], state_org.contact[3], state_org.contact[2];        
-        // state_reordered.contact.setOnes();
+        
         state_reordered.status_dur << state_org.status_dur[1], state_org.status_dur[0], state_org.status_dur[3], state_org.status_dur[2];
 
         state_reordered.qJ(Eigen::seqN(1,4,3)) = -state_reordered.qJ(Eigen::seqN(1,4,3)); 
