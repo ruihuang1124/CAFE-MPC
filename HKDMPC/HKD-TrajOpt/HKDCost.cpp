@@ -15,7 +15,7 @@ void HKDFootPlaceReg<T>::running_cost(RCost& rcost, const State& x, const Contrl
     prel_r = quad_astate->foot_placements - pCoM_r.replicate<4,1>();
     d_prel = prel - prel_r.cast<T>();
     rcost.l = .5 * d_prel.transpose() * Qfoot * d_prel;
-    rcost.l *= dt;
+    rcost.l *= dt;    
 }
 
 template <typename T>
