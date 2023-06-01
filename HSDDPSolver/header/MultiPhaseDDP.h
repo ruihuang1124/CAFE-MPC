@@ -46,8 +46,6 @@ public:
 
     bool hybrid_rollout(T eps, HSDDP_OPTION& option);
 
-    void nonlinear_rollout(T eps, HSDDP_OPTION& option);
-
     bool line_search(HSDDP_OPTION& option);
 
     void compute_cost(const HSDDP_OPTION& option);
@@ -103,6 +101,7 @@ private:
     T max_pconstr_prev;
     T max_tconstr; // maximum terminal contraint violation of all time
     T max_pconstr; // maximum path constraint violation of all time
+    T merit_rho;   // penalty parameter of the merit function
 
     DVec<T> x0;
     DVec<T> dx0;

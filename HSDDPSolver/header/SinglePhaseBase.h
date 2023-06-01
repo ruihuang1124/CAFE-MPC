@@ -32,9 +32,7 @@ public:
 
     virtual void linear_rollout(T eps, HSDDP_OPTION&) = 0;
 
-    virtual bool hybrid_rollout(T eps, HSDDP_OPTION&, bool is_last_phase = false) = 0;
-
-    virtual void nonlinear_rollout(T eps, HSDDP_OPTION&) = 0;
+    virtual bool hybrid_rollout(T eps, HSDDP_OPTION&, bool is_last_phase = false) = 0;    
 
     virtual void LQ_approximation(HSDDP_OPTION&) = 0;
 

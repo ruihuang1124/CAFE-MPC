@@ -110,8 +110,6 @@ public:
 
     bool hybrid_rollout(T eps, HSDDP_OPTION&, bool is_last_phase = false) override;
 
-    void nonlinear_rollout(T eps, HSDDP_OPTION&) override;
-
     void LQ_approximation(HSDDP_OPTION&) override;
 
     bool backward_sweep(T regularization, DVec<T> Gprime, DMat<T> Hprime) override;
@@ -161,8 +159,8 @@ public:
     void compute_defect() {traj->compute_defect();}
 
     void update_SS_config(int ss_sz) override {
-        SS_set.resize(ss_sz);
-        std::iota(SS_set.begin(), SS_set.end(), 1);
+        SS_set.resize(ss_sz);        
+        std::iota(SS_set.begin(), SS_set.end(), 0);
         }
 
     void get_trajectory(std::vector< std::vector<float>> & x_tau, 
@@ -171,22 +169,14 @@ public:
     void print() override;                         
 
 private:
-    void update_trajectory_ptrs();
-    
-    void compute_barrier(vector<IneqConstrData<T,xs,us,ys>>&, vector<REB_Param_Struct<T>>&); 
+    void update_trajectory_ptrs();    
 
-    void compute_cost(const HSDDP_OPTION& option);
-                                                                                            
-    void update_running_cost_with_pconstr(RCostData<T,xs,us,ys>& rcost,
-                                          vector<IneqConstrData<T,xs,us,ys>>& pconstrsData,
-                                          vector<REB_Param_Struct<T>>& reb_params,
-                                          int flag);
-    void update_running_cost_with_pconstr(RCostData<T,xs,us,ys>& rcost,
-                                          vector<IneqConstrData<T,xs,us,ys>>& pconstrsData,
-                                          vector<REB_Param_Struct<T>>& reb_params); 
-    void update_running_cost_par_with_pconstr(RCostData<T,xs,us,ys>& rcost,
-                                          vector<IneqConstrData<T,xs,us,ys>>& pconstrsData,
-                                          vector<REB_Param_Struct<T>>& reb_params);                                                                                        
+    void compute_cost(const HSDDP_OPTION& option);                                                                                                
+
+    void update_running_cost_with_pconstr(size_t k);
+
+    void update_running_cost_par_with_pconstr(size_t k);
+                                                                                        
     void update_running_cost_with_smooth();    
 
     void update_terminal_cost_with_tconstr();           

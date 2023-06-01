@@ -60,6 +60,7 @@ struct AL_Param_Struct
 {
     T lambda = 0;
     T sigma = 0;
+	T sigma_max = 0;
 	void update_penalty(T beta){
 		sigma *= beta;
 	}
@@ -92,18 +93,25 @@ public:
 	typedef VecM<T, xs_> State;
     typedef VecM<T, us_> Contrl;
     typedef VecM<T, ys_> Output;
-
-    enum {xs = xs_,
-          ys = ys_,
-          us = us_};
-
-	int size;
-	int len;
+	typedef std::vector<IneqConstrData<T,xs_,us_,ys_>> ConstrDataType;
+	typedef std::vector<REB_Param_Struct<T>> ReBDataType;    
+	
+	size_t size;
+	size_t len;
 	std::string name;
-	T max_violation = 0;
-	std::deque<std::vector<IneqConstrData<T,xs_,us_,ys_>>> data;	
-	std::deque<std::vector<REB_Param_Struct<T>>> params;
+	
+	std::deque<ConstrDataType> data;	
+	std::deque<ReBDataType> params;
 	REB_Param_Struct<T> param_init;
+
+	T max_violation = 0;
+	T ReB_cost;
+	VecM<T, us_> ReB_grad_u;
+	VecM<T, xs_> ReB_grad_x;
+	VecM<T, ys_> ReB_grad_y;
+	MatMN<T, us_, us_> ReB_hess_u;
+	MatMN<T, xs_, xs_> ReB_hess_x;
+	MatMN<T, ys_, ys_> ReB_hess_y;
 
 	PathConstraintBase(){
 		size = 0;
@@ -123,17 +131,14 @@ public:
 		@brief:	Allocate memory for constraint data. Always need to do this after a PathConstraintBase object is created  
 	*/
 	void create_data(){		
+		clear_data();
 		for (int i = 0; i < len; i++)
 		{
-			data.push_back(std::vector<IneqConstrData<T,xs_,us_,ys_>>(size));
+			data.push_back(ConstrDataType(size));
 		}		
 	}		
 	void clear_data(){
 		data.clear();
-	}
-	void resize_data(){
-		clear_data();
-		create_data();
 	}
 
 	/*
@@ -158,7 +163,7 @@ public:
 		initialize_params(param_init_);
 	}
 	void reset_params(){
-		initialize_params(param_init);
+		// initialize_params(param_init);
 	}
 	void update_params(T thresh, T beta_relax, T beta_weight){
 		for (int k = 0; k < len; k++)
@@ -180,8 +185,8 @@ public:
         len = len_;
     }  
 
-	void update_constraint_size(int size_){
-		size = size_;
+	void update_constraint_size(int size_in){
+		size = size_in;
 	}
 	void update_max_violation(int k){
 		if (k == 0){
@@ -195,6 +200,69 @@ public:
 		}
 		max_violation = std::min(max_violation, max_violation_k);
 	}
+
+	void compute_ReB_cost(size_t k){
+		ReB_cost = 0;
+		T barr = 0;
+		for (size_t i = 0; i < size; i++)
+		{
+			const auto& g = data[k][i].g;
+			const auto& delta = params[k][i].delta;
+			const auto& eps = params[k][i].eps;
+			if (g > delta)
+			{
+				barr = -log(g);
+			}else
+			{
+				barr = .5 * (((g - 2 * delta) / delta) * ((g - 2 * delta) / delta) - 1);
+				barr -= log(delta);
+			}		
+			ReB_cost += eps * barr; 				
+		}		
+	}
+
+	void compute_ReB_partials(size_t k){
+		ReB_grad_u.setZero();
+		ReB_grad_x.setZero();
+		ReB_grad_y.setZero();
+		ReB_hess_u.setZero();
+		ReB_hess_x.setZero();
+		ReB_hess_y.setZero();
+
+		T barr_dot = 0;
+		T barr_ddot = 0;
+
+		for (size_t i = 0; i < size; i++)
+		{
+			const auto& g = data[k][i].g;
+			const auto& gx = data[k][i].gx;
+			const auto& gu = data[k][i].gu;
+			const auto& gy = data[k][i].gy;
+			const auto& gxx = data[k][i].gxx;
+			const auto& guu = data[k][i].guu;
+			const auto& gyy = data[k][i].gyy;
+			const auto& delta = params[k][i].delta;
+			const auto& eps = params[k][i].eps;
+
+			if (g > delta)
+			{
+            	barr_dot = -1.0 / g;
+            	barr_ddot = pow(g, -2);
+			}else
+			{
+				barr_dot = (g - 2 * delta) / delta / delta;
+				barr_ddot = pow(delta, -2);
+			}		
+			ReB_grad_u += eps * barr_dot * gu;
+			ReB_grad_x += eps * barr_dot * gx;			
+			ReB_grad_y += eps * barr_dot * gy;
+			ReB_hess_u += eps * (barr_ddot * gu * gu.transpose() + barr_dot * guu);
+			ReB_hess_x += eps * (barr_ddot * gx * gx.transpose() + barr_dot * gxx);			
+			ReB_hess_y += eps * (barr_ddot * gy * gy.transpose() + barr_dot * gyy);				
+		}		
+	}
+	
+
 	// call update_max_violation in compute_violation in the derived class
 	virtual void compute_partial(const State&, const Contrl&, const Output&, int k) = 0;
 	virtual void compute_violation(const State&, const Contrl&, const Output&, int k) = 0;
@@ -273,10 +341,10 @@ public:
 	}
 	void reset_params(){
 		// initialize_params(param_init);
-		for (auto &param : params)
-		{
-			param.sigma = param_init.sigma;			
-		}
+		// for (auto &param : params)
+		// {
+		// 	param.sigma = param_init.sigma;			
+		// }
 		
 	}
 	void update_params(T thresh, T beta){
@@ -286,10 +354,10 @@ public:
 			{
 				continue;
 			}
-			if (fabs(data[i].h) > 0.01) // if too large, increase penalty
+			if (fabs(data[i].h) > 0.005) // if too large, increase penalty
 			{
 				params[i].update_penalty(beta);
-				params[i].sigma = std::min(params[i].sigma, 1e4);
+				params[i].sigma = std::min(params[i].sigma, params[i].sigma_max);
 			}else // if not too large, update Lagrange multiplier
 			{
 				params[i].update_Lagrange(data[i].h);
@@ -401,15 +469,6 @@ public:
 		for (auto pathConstraint : pathConstraints)
 		{
 			append_vector(pconstrs_data, pathConstraint->data[k]);
-		}		
-	}
-	// May need better implementation for speed up	
-	void get_terminal_constraints(std::vector<TConstrData<T,xs>>& tconstrs_data){
-		// clear the vector
-		tconstrs_data.clear();
-		for (auto terminalConstraint:terminalConstraints)
-		{
-			append_vector(tconstrs_data, terminalConstraint->data);
 		}		
 	}	
 

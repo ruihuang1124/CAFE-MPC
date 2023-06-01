@@ -95,36 +95,6 @@ bool MultiPhaseDDP<T>::hybrid_rollout(T eps, HSDDP_OPTION &option)
 }
 
 template <typename T>
-void MultiPhaseDDP<T>::nonlinear_rollout(T eps, HSDDP_OPTION &option)
-{
-    actual_cost = 0;
-    max_pconstr = 0;
-    max_tconstr = 0;
-    DVec<T> xinit = x0; // initial condition for each phase
-    DVec<T> xsim_init = x0;
-    DVec<T> xend;
-    DVec<T> xsim_end;
-
-    for (int i = 0; i < n_phases; i++)
-    {
-        if (i > 0)
-        {
-            // If not the first phase, run resetmap at the end of previous phase
-            phases[i - 1]->get_terminal_state(xend, xsim_end);
-            xinit = phases[i - 1]->resetmap(xend);
-            xsim_init = phases[i - 1]->resetmap(xsim_end);
-        }
-
-        phases[i]->set_initial_condition(xinit, xsim_init); // Set initial condition of current phase
-        phases[i]->nonlinear_rollout(eps, option);          // run hybrid rollout for each phase
-
-        // update the maximum constraint violations
-        max_pconstr = std::min(max_pconstr, phases[i]->get_max_pconstrs()); // should have non-positive value
-        max_tconstr = std::max(max_tconstr, phases[i]->get_max_tconstrs()); // should have non-negative value
-    }
-}
-
-template <typename T>
 bool MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
 {
     T exp_cost_change = 0;
@@ -140,16 +110,15 @@ bool MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
 #ifdef TIME_BENCHMARK
     fit_iter = 0;
 #endif
-    while (eps > 1e-5)
-    {
-        // nonlinear_rollout(eps, option);
+    while (eps > 1e-3)
+    {        
         rollout_success = hybrid_rollout(eps, option);
         compute_cost(option);
         feas = measure_dynamics_feasibility();
-        merit = actual_cost + option.merit_rho * feas;
+        merit = actual_cost + merit_rho * feas;
 
         exp_cost_change = eps * dV_1 + 0.5 * eps * eps * dV_2;
-        exp_merit_change = exp_cost_change - eps * option.merit_rho* feas_prev;
+        exp_merit_change = exp_cost_change - eps * merit_rho* feas_prev;
 
 #ifdef DEBUG_MODE
         printf("\t eps=%.3e \t actual cost change =%.3e \t expeced cost change =%.3e \t feas =%.3e\n",
@@ -289,7 +258,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
     update_nominal_trajectory();
     compute_cost(option);
     feas = measure_dynamics_feasibility();
-    // publish_trajectory();
+    
 
     printf("Initial total cost = %f \n", actual_cost);
     printf("Initial dynamics feasibility = %f \n", feas);
@@ -335,17 +304,14 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
         while (iter_in < option.max_DDP_iter)
         {
             compute_cost(option);
-            feas = measure_dynamics_feasibility();
-            merit = actual_cost + option.merit_rho * feas;
+            feas = measure_dynamics_feasibility();            
 
             printf("total cost = %f, dynamics infeasibility = %f \n", actual_cost, feas);
             iter_in++;
             iter++;
 #ifdef DEBUG_MODE
             printf("\t inner loop iteration %d \n", iter_in);
-#endif
-            cost_prev = actual_cost;
-            merit_prev = merit;
+#endif                  
 
 #ifdef TIME_BENCHMARK
             start = high_resolution_clock::now();
@@ -362,6 +328,20 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
                 linear_rollout(1.0, option);                
             }
             
+            T dV_abs = fabs(dV_1 + 0.5*dV_2);
+        
+            merit_rho = (feas > option.dynamics_feas_thresh) ? dV_abs/((1-option.merit_scale)*feas) + option.merit_offset : 0; 
+
+            merit = actual_cost + merit_rho * feas;
+            cost_prev = actual_cost;
+            merit_prev = merit;
+
+            // Early terminates before running line search
+            if ((dV_abs < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
+            {                
+                break;
+            }
+
             if (line_search(option))
             {
                 // if line search succeeds, accept the step
@@ -374,6 +354,10 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
                 merit = merit_prev;
             }
 
+            // Later terminates if actual cost change very small
+            if ((fabs((cost_prev - actual_cost)/cost_prev) < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
+                break;
+
 #ifdef TIME_BENCHMARK
             stop = high_resolution_clock::now();
             duration = duration_ms(stop - start);
@@ -384,10 +368,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
             cost_buffer.push_back(actual_cost);
             dyn_feas_buffer.push_back(feas);
             eqn_feas_buffer.push_back(max_tconstr);
-            ineq_feas_buffer.push_back(max_pconstr);
-
-            if ((fabs((cost_prev - actual_cost)/cost_prev) < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
-                break;
+            ineq_feas_buffer.push_back(max_pconstr);            
 
 #ifdef TIME_BENCHMARK
             start = high_resolution_clock::now();

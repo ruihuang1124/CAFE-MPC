@@ -148,7 +148,7 @@ void SinglePhase<T, xs, us, ys>::linear_rollout(T eps, HSDDP_OPTION &option)
 
     dV_1 = 0;
     dV_2 = 0;
-    dX->at(0) = dx_init;
+    dX->at(0) = dx_init + eps * Defect->at(0);
     for (int k = 0; k < phase_horizon; k++)
     {
         const auto &qk = rcostData->at(k).lx;
@@ -181,11 +181,19 @@ void SinglePhase<T, xs, us, ys>::linear_rollout(T eps, HSDDP_OPTION &option)
 template <typename T, size_t xs, size_t us, size_t ys>
 bool SinglePhase<T, xs, us, ys>::hybrid_rollout(T eps, HSDDP_OPTION &option, bool is_last_phase)
 {    
-    (void) (is_last_phase);            
-    int k = 0;
-    X->at(0) = x_init;
-    Xsim->at(0) = xsim_init;
+    (void) (is_last_phase);               
+    Xsim->at(0) = x_init;
     
+    if (!SS_set.empty() && SS_set.front()==0)
+    {
+        X->at(0) = Xbar->at(0) + eps * dX->at(0);
+    }else
+    {
+        X->at(0) = x_init;
+    }
+    
+    
+    int k = 0;
     for (k = 0; k < phase_horizon; k++)
     {
         /* update control */
@@ -225,46 +233,9 @@ bool SinglePhase<T, xs, us, ys>::hybrid_rollout(T eps, HSDDP_OPTION &option, boo
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::nonlinear_rollout(T eps, HSDDP_OPTION &option)
-{
-    VecM<T, xs> dxk;
-    VecM<T, xs> xk_next;    
-
-    int k = 0;
-    actual_cost = 0;
-    X->at(0) = x_init;
-    Xsim->at(0) = xsim_init;    
-    for (k = 0; k < phase_horizon; k++)
-    {
-        dxk = X->at(k) - Xbar->at(k);
-
-        U->at(k) = Ubar->at(k) + eps * dU->at(k) + K->at(k) * dxk;
-
-        dynamics(Xsim->at(k + 1), Y->at(k), X->at(k), U->at(k), t_offset + k*dt);
-
-        X->at(k + 1) = Xsim->at(k + 1) - (1 - eps) * Defect_bar->at(k + 1);
-
-        /* compute path constraints */
-        constraintContainer.compute_path_constraints(X->at(k), U->at(k), Y->at(k), k);     
-
-    }
-
-    /* compute terminal constraint */
-    constraintContainer.compute_terminal_constraints(X->at(k));
-
-    /* compute defects */    
-    compute_defect();
-}
-
-template <typename T, size_t xs, size_t us, size_t ys>
 void SinglePhase<T, xs, us, ys>::compute_cost(const HSDDP_OPTION& option)
-{    
-    vector<IneqConstrData<T, xs, us, ys>> pconstrsData;
-    vector<TConstrData<T, xs>> tconstrsData;
-    vector<REB_Param_Struct<T>> reb_params;
-    vector<AL_Param_Struct<T>> al_params;
-
-    int k =0;
+{       
+    size_t k =0;
     actual_cost = 0;    
     for (k = 0; k < phase_horizon; k++)
     {
@@ -273,10 +244,8 @@ void SinglePhase<T, xs, us, ys>::compute_cost(const HSDDP_OPTION& option)
         
         /* update running cost with path constraints using ReB method */
         if (option.ReB_active)
-        {
-            constraintContainer.get_path_constraints(pconstrsData, k);
-            constraintContainer.get_reb_params(reb_params, k);
-            update_running_cost_with_pconstr(rcostData->at(k), pconstrsData, reb_params);
+        {            
+            update_running_cost_with_pconstr(k);            
         }
         actual_cost += rcostData->at(k).l;           
     }
@@ -294,12 +263,7 @@ void SinglePhase<T, xs, us, ys>::compute_cost(const HSDDP_OPTION& option)
 
 template <typename T, size_t xs, size_t us, size_t ys>
 void SinglePhase<T, xs, us, ys>::LQ_approximation(HSDDP_OPTION &option)
-{
-    vector<IneqConstrData<T, xs, us, ys>> pconstrsData;
-    vector<TConstrData<T, xs>> tconstrsData;
-    vector<REB_Param_Struct<T>> reb_params;
-    vector<AL_Param_Struct<T>> al_params;
-
+{    
     int k = 0;
     /* LQ approximation for all intermediate states */
     for (k = 0; k < phase_horizon; k++)
@@ -314,10 +278,8 @@ void SinglePhase<T, xs, us, ys>::LQ_approximation(HSDDP_OPTION &option)
         if (option.ReB_active)
         {
              /* compute path constraints partial*/
-            constraintContainer.compute_path_constraints_par(X->at(k), U->at(k), Y->at(k), k);
-            constraintContainer.get_path_constraints(pconstrsData, k);
-            constraintContainer.get_reb_params(reb_params, k);
-            update_running_cost_par_with_pconstr(rcostData->at(k), pconstrsData, reb_params);
+            constraintContainer.compute_path_constraints_par(X->at(k), U->at(k), Y->at(k), k);    
+            update_running_cost_par_with_pconstr(k);
         }
     }
 
@@ -399,82 +361,35 @@ bool SinglePhase<T, xs, us, ys>::backward_sweep(T regularization, DVec<T> Gprime
         dV_1 -= dV_k;
         dV_2 += dV_k;
     }   
+    // Update the value gradient using the defect at the initial condition
+    G->at(0) += H->at(0) * Defect->at(0);
     return success;
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_running_cost_with_pconstr(RCostData<T, xs, us, ys> &rcost,
-                                                                  vector<IneqConstrData<T, xs, us, ys>> &pconstrsData,
-                                                                  vector<REB_Param_Struct<T>> &reb_params,
-                                                                  int flag)
+void SinglePhase<T, xs, us, ys>::update_running_cost_with_pconstr(size_t k)
 {
-    if (flag == 1)
+    const auto& pConstraints = constraintContainer.pathConstraints;
+    for (size_t i = 0; i < pConstraints.size(); i++)
     {
-        compute_barrier(pconstrsData, reb_params); // update barrier data B, Bd, Bdd
-    }
-
-    for (int i = 0; i < pConstrs_size; i++)
-    {
-        const auto &eps = reb_params[i].eps;
-        const auto &c = pconstrsData[i];
-
-        switch (flag)
-        {
-        case 1:
-            rcost.l += eps * Bar[i] * dt;
-            break;
-        case 2:
-            rcost.lx += eps * Bard[i] * c.gx * dt;
-            rcost.lu += eps * Bard[i] * c.gu * dt;
-            rcost.ly += eps * Bard[i] * c.gy * dt;
-            rcost.lxx += eps * dt * (Bardd[i] * c.gx * c.gx.transpose() + Bard[i] * c.gxx);
-            rcost.luu += eps * dt * (Bardd[i] * c.gu * c.gu.transpose() + Bard[i] * c.guu);
-            rcost.lyy += eps * dt * (Bardd[i] * c.gy * c.gy.transpose() + Bard[i] * c.gyy);
-            break;
-        case 3:
-            rcost.l += eps * Bar[i] * dt;
-            rcost.lx += eps * Bard[i] * c.gx * dt;
-            rcost.lu += eps * Bard[i] * c.gu * dt;
-            rcost.ly += eps * Bard[i] * c.gy * dt;
-            rcost.lxx += eps * dt * (Bardd[i] * c.gx * c.gx.transpose() + Bard[i] * c.gxx);
-            rcost.luu += eps * dt * (Bardd[i] * c.gu * c.gu.transpose() + Bard[i] * c.guu);
-            rcost.lyy += eps * dt * (Bardd[i] * c.gy * c.gy.transpose() + Bard[i] * c.gyy);
-            break;
-        }
+        pConstraints[i]->compute_ReB_cost(k);
+        rcostData->at(k).l += dt * pConstraints[i]->ReB_cost;
     }
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_running_cost_with_pconstr(RCostData<T, xs, us, ys> &rcost,
-                                                                  vector<IneqConstrData<T, xs, us, ys>> &pconstrsData,
-                                                                  vector<REB_Param_Struct<T>> &reb_params)
+void SinglePhase<T, xs, us, ys>::update_running_cost_par_with_pconstr(size_t k)
 {
-    compute_barrier(pconstrsData, reb_params); // update barrier data B, Bd, Bdd
-
-    for (int i = 0; i < pConstrs_size; i++)
+    const auto& pConstraints = constraintContainer.pathConstraints;
+    for (size_t i = 0; i < pConstraints.size(); i++)
     {
-        const auto &eps = reb_params[i].eps;
-        const auto &c = pconstrsData[i];
-        rcost.l += eps * Bar[i] * dt;
-    }
-}
-
-template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::update_running_cost_par_with_pconstr(RCostData<T, xs, us, ys> &rcost,
-                                                                      vector<IneqConstrData<T, xs, us, ys>> &pconstrsData,
-                                                                      vector<REB_Param_Struct<T>> &reb_params)
-{
-
-    for (int i = 0; i < pConstrs_size; i++)
-    {
-        const auto &eps = reb_params[i].eps;
-        const auto &c = pconstrsData[i];
-        rcost.lx += eps * Bard[i] * c.gx * dt;
-        rcost.lu += eps * Bard[i] * c.gu * dt;
-        rcost.ly += eps * Bard[i] * c.gy * dt;
-        rcost.lxx += eps * dt * (Bardd[i] * c.gx * c.gx.transpose() + Bard[i] * c.gxx);
-        rcost.luu += eps * dt * (Bardd[i] * c.gu * c.gu.transpose() + Bard[i] * c.guu);
-        rcost.lyy += eps * dt * (Bardd[i] * c.gy * c.gy.transpose() + Bard[i] * c.gyy);
+        pConstraints[i]->compute_ReB_partials(k);
+        rcostData->at(k).lu += dt * pConstraints[i]->ReB_grad_u;
+        rcostData->at(k).lx += dt * pConstraints[i]->ReB_grad_x;
+        rcostData->at(k).ly += dt * pConstraints[i]->ReB_grad_y;
+        rcostData->at(k).luu += dt * pConstraints[i]->ReB_hess_u;
+        rcostData->at(k).lxx += dt * pConstraints[i]->ReB_hess_x;
+        rcostData->at(k).lyy += dt * pConstraints[i]->ReB_hess_y;
     }
 }
 
@@ -516,34 +431,7 @@ void SinglePhase<T, xs, us, ys>::update_nominal_trajectory()
     traj->update_nominal_vals();
 }
 
-template <typename T, size_t xs, size_t us, size_t ys>
-void SinglePhase<T, xs, us, ys>::compute_barrier(vector<IneqConstrData<T, xs, us, ys>> &pconstrsData,
-                                                 vector<REB_Param_Struct<T>> &reb_params)
-{
-    Bar.setZero();
-    Bard.setZero();
-    Bardd.setZero();
 
-    int k = 2; // order of approximating polynomial
-    for (int i = 0; i < pConstrs_size; i++)
-    {
-        const auto &c = pconstrsData[i];
-        const auto &delta = reb_params[i].delta;
-
-        if (c.g > delta)
-        {
-            Bar[i] = -log(c.g);
-            Bard[i] = -1.0 / c.g;
-            Bardd[i] = pow(c.g, -2);
-        }
-        else
-        {
-            Bar[i] = .5 * (((c.g - 2 * delta) / delta) * ((c.g - 2 * delta) / delta) - 1) - log(delta);
-            Bard[i] = (c.g - 2 * delta) / delta / delta;
-            Bardd[i] = pow(delta, -2);
-        }
-    }
-}
 template <typename T, size_t xs, size_t us, size_t ys>
 void SinglePhase<T, xs, us, ys>::update_trajectory_ptrs()
 {
@@ -596,9 +484,8 @@ void SinglePhase<T, xs, us, ys>::update_REB_params(HSDDP_OPTION &option)
 */
 template <typename T, size_t xs, size_t us, size_t ys>
 void SinglePhase<T, xs, us, ys>::push_back_default()
-{
-    // traj->push_back_zero();
-    traj->push_back_state(traj->X.back());
+{    
+    traj->push_back_state(traj->X.back());    
     constraintContainer.push_back_n(1);
     phase_horizon = traj->horizon;
 }
