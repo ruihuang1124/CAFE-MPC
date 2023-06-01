@@ -70,7 +70,8 @@ def visualize_motion_lcm_handler(channel, data):
     # animator.plot_pos(t, pos)
     # animator.plot_joint_torques(t, torque)
     # animator.plot_GRF(t, GRF)
-    # animator.plot_feasibility(t, msg.feas)
+    t = np.arange(0, len(msg.feas))
+    animator.plot_feasibility(t, msg.feas)
 
     tau_sz = msg.len
     for k in range(tau_sz-1):
