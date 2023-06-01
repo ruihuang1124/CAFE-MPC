@@ -67,16 +67,10 @@ void HKDProblem<T>::initialization()
         t += dt_sim;
     }
 
-     /* Initialize REB and AL parameters for ineq and eq constraints */
-    grf_reb_param.delta = .1;
-    grf_reb_param.delta_min = 0.001;
-    grf_reb_param.eps = .01;
-    swing_reb_param.delta = 2;
-    swing_reb_param.delta_min = 0.01;
-    swing_reb_param.eps = 0.02;
-    td_al_param.lambda = 0;
-    td_al_param.sigma = 50;
-
+    /* Initialize REB and AL parameters for ineq and eq constraints */
+    const std::string& constraint_params_fname = "../HKDMPC/settings/constraint_params.info";
+    loadConstrintParameters(constraint_params_fname, grf_reb_param, swing_reb_param,td_al_param);
+    
     /* Create a phase and initialize its trajectory, cost, etc */
     for (int i = 0; i < n_phases; i++)
     {        

@@ -20,7 +20,7 @@ template <typename T>
 void HKDMPCSolver<T>::initialize()
 {
     printf("Initializing HKDMPC Solver ... \n\n");
-    std::string fname_ddp_setting("../HKDMPC/ddp_setting.info");
+    std::string fname_ddp_setting("../HKDMPC/settings/ddp_setting.info");
     loadHSDDPSetting(fname_ddp_setting, ddp_options);
 
     mpc_config.plan_duration = .6;

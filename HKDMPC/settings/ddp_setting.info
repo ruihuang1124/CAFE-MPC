@@ -18,7 +18,7 @@ ddp
     merit_scale             0.2
     merit_offset            1e2
     AL_active               true
-    ReB_active              false
+    ReB_active              true
     smooth_active           false
     MS                      true
     nsteps_per_node         1

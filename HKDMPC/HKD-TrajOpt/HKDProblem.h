@@ -14,6 +14,9 @@
 #include <lcm/lcm-cpp.hpp>
 #include "hkd_problem_data_lcm_t.hpp"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/info_parser.hpp>
+
 struct HKDPlanConfig
 {
     float plan_duration;            // planning horizon in seconds
@@ -63,6 +66,28 @@ struct HKDProblemData
     }
 };
 
+template<typename T>
+inline void loadConstrintParameters(const std::string&fileName, 
+                                    REB_Param_Struct<T>& GRF_reb_param,
+                                    REB_Param_Struct<T>& Swing_reb_param,
+                                    AL_Param_Struct<T>& TD_al_param)
+{
+	boost::property_tree::ptree pt;
+    boost::property_tree::read_info(fileName, pt);
+	std::cout << "********* loading MHPC Constraint Parameter from file **********\n" << fileName << "\n\n";
+
+	GRF_reb_param.delta = pt.get<T>("GRF_ReB.delta");
+	GRF_reb_param.delta_min = pt.get<T>("GRF_ReB.delta_min");
+	GRF_reb_param.eps = pt.get<T>("GRF_ReB.eps");
+
+    Swing_reb_param.delta = pt.get<T>("Swing_ReB.delta");
+	Swing_reb_param.delta_min = pt.get<T>("Swing_ReB.delta_min");
+	Swing_reb_param.eps = pt.get<T>("Swing_ReB.eps");	
+
+    TD_al_param.sigma = pt.get<T>("TD_AL.sigma");
+	TD_al_param.lambda = pt.get<T>("TD_AL.lambda");	
+    TD_al_param.sigma_max = pt.get<T>("TD_AL.sigma_max");
+}
 
 template<typename T>
 class HKDProblem
