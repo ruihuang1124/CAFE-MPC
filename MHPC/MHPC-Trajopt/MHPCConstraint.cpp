@@ -3,11 +3,12 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
 /*
-    Whole-Body GRF Constraint A*y - B = 0 where y is the GRF of dim 12x1
+    Whole-Body GRF Constraint A*y - b >= 0 where y is the GRF of dim 12x1
 */
 template<typename T>
 MHPCConstraints::WBGRF<T>::WBGRF(const VecM<int, 4> &ctact)
-    : PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>("GRF")
+    :PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>("GRF"),
+     mu_fric(0.6)
 {
     ctact_status = ctact;
     const int& n_constrained_foot = ctact.cwiseEqual(1).cast<int>().sum();
@@ -214,7 +215,71 @@ void MHPCConstraints::WBTouchDown<T>::compute_partial(const State &x)
     }
 }
 
+template <typename T>
+MHPCConstraints::SRBGRF<T>::SRBGRF(const VecM<int, 4> &ctact)
+    : PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>("GRF"),
+      mu_fric(1.0)
+{
+    ctact_status = ctact;
+    int n_constrained_foot = ctact.cwiseEqual(1).cast<int>().sum();
+    this->update_constraint_size(5 * n_constrained_foot);
+   
+    auto &mu = mu_fric;
+    A.setZero(this->size, 24);
+    b.setZero(this->size);
+    MatMN<T, 5, 3> A_leg;
+    A_leg << 0, 0, 1,
+        -1, 0, sqrt(mu),
+        1, 0, sqrt(mu),
+        0, -1, sqrt(mu),
+        0, 1, sqrt(mu);
+
+    int i(0);
+    for (size_t leg = 0; leg < 4; ++leg)
+    {
+        if (ctact_status[leg] > 0)
+        {
+            A.block(5 * i, 3 * leg, 5, 3) = A_leg;
+            ++i;
+        }               
+    }
+}
+
+template <typename T>
+void MHPCConstraints::SRBGRF<T>::compute_violation(const State& x, const Contrl& u, const Output& y, int k)
+{
+     if (this->data.empty())
+    {
+        printf("Constraint data is empty \n");
+        printf("Creating constaint data \n");
+        this->create_data();
+    }
+
+    (void)(x);
+    (void)(y);
+
+    for (size_t i = 0; i < this->data[k].size(); i++)
+    {
+        this->data[k][i].g = A.row(i) * u;        
+    }
+    this->update_max_violation(k);
+}
+
+template <typename T>
+void MHPCConstraints::SRBGRF<T>::compute_partial(const State& x, const Contrl& u, const Output& y, int k)
+{
+    (void)(x);
+    (void)(y);
+    (void)(u);
+
+    for (size_t i = 0; i < this->data[k].size(); i++)
+    {        
+        this->data[k][i].gu = A.row(i).transpose();
+    }
+}
+
 template class MHPCConstraints::WBGRF<double>;
 template class MHPCConstraints::TorqueLimit<double>;
 template class MHPCConstraints::JointLimit<double>;
 template class MHPCConstraints::WBTouchDown<double>;
+template class MHPCConstraints::SRBGRF<double>;

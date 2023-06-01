@@ -17,7 +17,7 @@ namespace MHPCConstraints
         using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Contrl;
         using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Output;
 
-        T mu_fric = .7; // Default Columb friction coefficient
+        T mu_fric; // Default Columb friction coefficient
         DMat<T> A;
         DVec<T> b;
 
@@ -104,6 +104,34 @@ namespace MHPCConstraints
 
         DVec<T> TD_EE_heights;
         DMat<T> TD_EE_Jacobians;                
+    };
+
+    template <typename T>
+    class SRBGRF : public PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>
+    {
+    private:
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::State;
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::Contrl;
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::Output;
+
+        T mu_fric; // Columb friction coefficient (relaxed than WB constraint)
+        DMat<T> A;
+        DVec<T> b;
+
+    public:
+        SRBGRF(const VecM<int, 4> &ctact_);
+
+        void set_friction_coefficient(T mu_fric_in)
+        {
+            mu_fric = mu_fric_in;
+        }
+
+        void compute_violation(const State &, const Contrl &, const Output &, int k) override;
+
+        void compute_partial(const State &, const Contrl &, const Output &, int k) override;
+
+    public:
+        VecM<int, 4> ctact_status;
     };
 }
 

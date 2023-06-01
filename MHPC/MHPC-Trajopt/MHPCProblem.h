@@ -32,10 +32,7 @@ struct MHPCConfig
     float dt_mpc;       
 
     // Bamguart parameter (velocity feedback gain)
-    float BG_alpha;
-
-    // Bamguart parameter (position feedback gain)
-    float BG_beta;
+    float BG_alpha;   
 
     std::string referenceFileName;
 
@@ -46,8 +43,7 @@ struct MHPCConfig
         std::cout << "SRB plan duration = \t" << plan_dur_srb << "\n";        
         std::cout << "SRB simulation timestep = \t" << dt_srb << "\n";
         std::cout << "MPC updates every " << dt_mpc << " seconds" << "\n";
-        std::cout << "Baumgart alpha (vel) " << BG_alpha << "\n";
-        std::cout << "Baumgart alpha (pos) " << BG_beta << "\n";
+        std::cout << "Baumgart alpha (vel) " << BG_alpha << "\n";        
         std::cout << "Reference " << referenceFileName << "\n";
     }
 };
@@ -63,10 +59,34 @@ inline void loadMHPCConfig(const std::string filename, MHPCConfig& config)
     config.dt_mpc = pt.get<double>("config.dt_mpc");
     config.dt_wb = pt.get<double>("config.dt_wb");
     config.dt_srb = pt.get<double>("config.dt_srb");
-    config.BG_alpha = pt.get<double>("config.BG_alpha");
-    config.BG_beta = pt.get<double>("config.BG_beta");
+    config.BG_alpha = pt.get<double>("config.BG_alpha");    
     config.referenceFileName = pt.get<std::string>("config.referenceFile");
 }
+
+template<typename T>
+inline void loadConstrintParameters(const std::string&fileName, 
+                                    REB_Param_Struct<T>& GRF_reb_param,
+                                    REB_Param_Struct<T>& Torque_reb_param,
+                                    AL_Param_Struct<T>& TD_al_param)
+{
+	boost::property_tree::ptree pt;
+    boost::property_tree::read_info(fileName, pt);
+	std::cout << "********* loading MHPC Constraint Parameter from file **********\n" << fileName << "\n\n";
+
+	GRF_reb_param.delta = pt.get<T>("GRF_ReB.delta");
+	GRF_reb_param.delta_min = pt.get<T>("GRF_ReB.delta_min");
+	GRF_reb_param.eps = pt.get<T>("GRF_ReB.eps");
+
+    Torque_reb_param.delta = pt.get<T>("Torque_ReB.delta");
+	Torque_reb_param.delta_min = pt.get<T>("Torque_ReB.delta_min");
+	Torque_reb_param.eps = pt.get<T>("Torque_ReB.eps");	
+
+    TD_al_param.sigma = pt.get<T>("TD_AL.sigma");
+	TD_al_param.lambda = pt.get<T>("TD_AL.lambda");	
+    TD_al_param.sigma_max = pt.get<T>("TD_AL.sigma_max");
+}
+
+
 
 template <typename T>
 struct MHPCProblemData

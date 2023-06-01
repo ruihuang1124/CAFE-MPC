@@ -8,7 +8,7 @@ int main()
 {
     // std::string reference_file_path = "../Reference/Data/quad_reference.csv";    
     MHPCConfig config;
-    std::string mhpc_config_file("../MHPC/mhpc_config.info");
+    std::string mhpc_config_file("../MHPC/settings/mhpc_config.info");
     loadMHPCConfig(mhpc_config_file, config);
     config.print();
 
@@ -63,7 +63,7 @@ int main()
 
     /* Solve th multiple-phase TO problem */
     HSDDP_OPTION ddp_setting;
-    std::string fname_ddp_setting("../MHPC/ddp_setting.info");
+    std::string fname_ddp_setting("../MHPC/settings/ddp_setting.info");
     loadHSDDPSetting(fname_ddp_setting, ddp_setting);
     ddp_setting.print();
 
@@ -89,10 +89,13 @@ int main()
     solver.solve(ddp_setting);
 
     // int loop = 0;
-    // while (loop <= 5)
+    // ddp_setting.max_AL_iter = 2;
+    // ddp_setting.max_DDP_iter = 1;
+    // while (loop <= 2)
     // {
-    //     loop++;
+    //     loop++;        
     //     problem.update();
+    //     problem.pretty_print();
     //     multiple_phases.clear();
     //     for (auto phase : pdata.wb_phases)
     //     {
@@ -102,14 +105,28 @@ int main()
     //     {
     //         multiple_phases.push_back(pdata.srb_phase);
     //     }
+    //     xinit = pdata.wb_trajs.front()->Xbar.front();
     //     solver.set_initial_condition(xinit);
     //     solver.set_multiPhaseProblem(multiple_phases);
     //     solver.solve(ddp_setting);
-    // }
+    // }    
 
-    // Debug
-    const std::string logMHPC_folderName = "../MHPC/log/";
-    log_trajectory_sequence(logMHPC_folderName, pdata.wb_trajs);
+    // problem.update();
+    // problem.pretty_print();
+    // multiple_phases.clear();
+    // for (auto phase : pdata.wb_phases)
+    // {
+    //     multiple_phases.push_back(phase);
+    // }
+    // if (pdata.srb_phase.get() != nullptr)
+    // {
+    //     multiple_phases.push_back(pdata.srb_phase);
+    // }
+    // xinit = pdata.wb_trajs.front()->Xbar.front();
+    // solver.set_initial_condition(xinit);
+    // solver.set_multiPhaseProblem(multiple_phases);
+    // solver.hybrid_rollout(1, ddp_setting);
+
     
     /* Publish via LCM */
     lcm::LCM visualize_traj_lcm;

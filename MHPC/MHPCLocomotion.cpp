@@ -22,12 +22,12 @@ void MHPCLocomotion<T>::initialize()
     opt_problem_data.clear();   
 
     // Load MHPC config    
-    std::string mhpc_config_file("../MHPC/mhpc_config.info");    
+    std::string mhpc_config_file("../MHPC/settings/mhpc_config.info");    
     loadMHPCConfig(mhpc_config_file, mpc_config);
     mpc_config.print();
     
     // Load DDP setting        
-    std::string ddp_setting_file("../MHPC/ddp_setting.info");
+    std::string ddp_setting_file("../MHPC/settings/ddp_setting.info");
     loadHSDDPSetting(ddp_setting_file, ddp_setting);        
 
     // Load reference trajectory
@@ -93,17 +93,16 @@ void MHPCLocomotion<T>::initialize()
     printf("MHPC solver is initialized successfully \n\n");
 
     publish_mpc_cmd();
-    
+
+    // run-time DDP setting when re-solving DDP in MPC 
+    ddp_setting.max_AL_iter = ddp_setting.max_AL_iter_runtime;
+    ddp_setting.max_DDP_iter = ddp_setting.max_DDP_iter_runtime;    
 }
 
 template <typename T>
 void MHPCLocomotion<T>::update()
 {
-    mpc_mutex.lock(); // lock mpc to prevent updating while the previous hasn't finished
-
-    // run-time DDP setting when re-solving DDP in MPC 
-    ddp_setting.max_AL_iter = 2;
-    ddp_setting.max_DDP_iter = 1;
+    mpc_mutex.lock(); // lock mpc to prevent updating while the previous hasn't finished    
     mpc_iter++;
 
     printf("************************************* \n");
@@ -197,7 +196,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
     
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 3; // use 3 more controls than control duration to account for delay
+    nControlSteps = 4; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
@@ -212,6 +211,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
         const VecM<float, WBM::xs>& x_float = trajs[pidx]->Xbar[k_rel].template cast<float>();
         const VecM<float, WBM::us>& u_float = trajs[pidx]->Ubar[k_rel].template cast<float>();
+        const MatMN<float, WBM::us, WBM::xs>& K_float = trajs[pidx]->K[k_rel].template cast<float>();
 
         std::copy(x_float.begin(), x_float.begin()+3, mpc_cmd.pos[k]);
 
@@ -226,6 +226,8 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         std::copy(x_float.data()+24, x_float.data()+36,mpc_cmd.qJd[k]);
 
         std::copy(u_float.begin(), u_float.end(), mpc_cmd.torque[k]);        
+
+        std::copy(K_float.data(), K_float.data()+432, mpc_cmd.feedback[k]);
 
         std::copy(ctacts[pidx].begin(), ctacts[pidx].end(), mpc_cmd.contacts[k]);
 

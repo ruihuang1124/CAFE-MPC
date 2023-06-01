@@ -237,14 +237,13 @@ void WBM::Model<T>::get_footXYPositions(VecM<T, 8> &EE_XY, const StateType &x)
     @brief: Get all foot positions
 */
 template <typename T>
-void WBM::Model<T>::get_footPositions(VecM<T, 12> &EE_pos, const StateType &x)
-{    
-    EE_pos.setZero();
+void WBM::Model<T>::get_footPositions(VecM<T,3> EE_pos[4], const StateType &x)
+{            
     pinocchio::forwardKinematics(pin_model, pin_data, x.template head<nq>());
     for (size_t i = 0; i < 4; i++)
     {
         pinocchio::updateFramePlacement(pin_model, pin_data, contactFootFrameIds[i]);
-        EE_pos.template segment<3>(3 * i) = pin_data.oMf[contactFootFrameIds[i]].translation().template head<3>();
+        EE_pos[i] = pin_data.oMf[contactFootFrameIds[i]].translation().template head<3>();
     }
 }
 
@@ -270,6 +269,26 @@ void WBM::Model<T>::get_contactFootJacobians(DMat<T> &J_EE, const StateType &x, 
         }
     }
 }
+
+/*
+    @brief: Get all end-effector Jacobians
+*/
+template <typename T>
+void WBM::Model<T>::get_footJacobians(MatMN<T, 3, nq> J_EE[4], const StateType& x)
+{    
+    pinocchio::computeJointJacobians(pin_model, pin_data, x.template head<nq>());
+    
+    for (size_t i(0); i < 4; ++i)
+    {
+        // Get spatial Jacobian
+        J_6D.setZero();
+        pinocchio::getFrameJacobian(pin_model, pin_data, contactFootFrameIds[i], pinocchio::LOCAL_WORLD_ALIGNED, J_6D);
+
+        // The top three rows of spatial Jacian corresponds to translation
+        J_EE[i] = J_6D.topRows(3);
+    }
+}
+
 
 template <typename T>
 void WBM::Model<T>::KKTContactDynamics()
@@ -307,12 +326,8 @@ void WBM::Model<T>::KKTContactDynamics()
             vw_c = vc_6D.tail(3);
             gamma_activeEE.segment(3 * i, 3) += vw_c.cross(vv_c);
 
-            // Bamguart stabilization            
-            VecM<T, 3> EE_c;
-            pinocchio::updateFramePlacement(pin_model, pin_data, contactFrameIds_cur[i]);
-            EE_c = pin_data.oMf[contactFrameIds_cur[i]].translation().template head<3>();
-            gamma_activeEE.segment(3 * i, 3) += 2 * BG_alpha*vv_c;
-            gamma_activeEE.segment(3 * i, 3) += BG_beta*BG_beta*EE_c;
+            // Bamguart stabilization                        
+            gamma_activeEE.segment(3 * i, 3) += 2 * BG_alpha*vv_c;            
         }
         qdd = pinocchio::forwardDynamics(pin_model, pin_data, q, v, tau, J_activeEE, gamma_activeEE, 1e-12);
         // Map contact force
@@ -384,8 +399,7 @@ void WBM::Model<T>::KKTContactDynamicsDerivatives()
 
     // Bamguart stabilization
     computeFootVelDerivatives(q, v);
-    da_dq_activeEE += 2 * BG_alpha * dv_dq_activeEE;
-    da_dq_activeEE += BG_beta*BG_beta * J_activeEE;
+    da_dq_activeEE += 2 * BG_alpha * dv_dq_activeEE;    
     da_dv_activeEE += 2 * BG_alpha * J_activeEE;
 
     // Compute dqdd_dq, dGRF_dq
@@ -582,3 +596,66 @@ void WBM::Model<T>::printModelInfo()
 }
 
 template class WBM::Model<double>;
+
+template <typename T>
+void computeLegPosition(Vec3<T>& p, const Vec3<T>& qleg, int leg)
+{
+    T l1 = 0.062;
+    T l2 = 0.209;
+    T l3 = 0.195;
+    T l4 = 0.004;
+    T sideSigns[] = {1,-1,1,-1};
+    T sideSign = sideSigns[leg];
+
+    T s1 = std::sin(qleg(0));
+    T s2 = std::sin(-qleg(1));
+    T s3 = std::sin(-qleg(2));
+
+    T c1 = std::cos(qleg(0));
+    T c2 = std::cos(-qleg(1));
+    T c3 = std::cos(-qleg(2));
+
+    T c23 = c2 * c3 - s2 * s3;
+    T s23 = s2 * c3 + c2 * s3;
+
+    p[0] = l3 * s23 + l2 * s2;
+    p[1] = (l1+l4) * sideSign * c1 + l3 * (s1 * c23) + l2 * c2 * s1;
+    p[2] = (l1+l4) * sideSign * s1 - l3 * (c1 * c23) - l2 * c1 * c2;
+}
+
+template <typename T>
+void computeLegJacobian(MatMN<T, 3, 3>& J, const Vec3<T>& qleg, int leg)
+{
+    
+    T l1 = 0.062;
+    T l2 = 0.209;
+    T l3 = 0.195;
+    T l4 = 0.004;
+    T sideSigns[] = {1,-1,1,-1};
+    T sideSign = sideSigns[leg];
+
+    T s1 = std::sin(qleg(0));
+    T s2 = std::sin(-qleg(1));
+    T s3 = std::sin(-qleg(2));
+
+    T c1 = std::cos(qleg(0));
+    T c2 = std::cos(-qleg(1));
+    T c3 = std::cos(-qleg(2));
+
+    T c23 = c2 * c3 - s2 * s3;
+    T s23 = s2 * c3 + c2 * s3;
+
+    J(0, 0) = 0;
+    J(0, 1) = l3 * c23 + l2 * c2;
+    J(0, 2) = l3 * c23;
+    J(1, 0) = l3 * c1 * c23 + l2 * c1 * c2 - (l1+l4) * sideSign * s1;
+    J(1, 1) = -l3 * s1 * s23 - l2 * s1 * s2;
+    J(1, 2) = -l3 * s1 * s23;
+    J(2, 0) = l3 * s1 * c23 + l2 * c2 * s1 + (l1+l4) * sideSign * c1;
+    J(2, 1) = l3 * c1 * s23 + l2 * c1 * s2;
+    J(2, 2) = l3 * c1 * s23;
+
+    J.template rightCols<2>() *= -1;
+}
+template void computeLegPosition<double>(Vec3<double>& p, const Vec3<double>& qleg, int leg);
+template void computeLegJacobian<double>(MatMN<double, 3, 3>& J, const Vec3<double>& qleg, int leg);

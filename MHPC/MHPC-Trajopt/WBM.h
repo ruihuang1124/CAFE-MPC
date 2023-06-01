@@ -38,11 +38,10 @@ namespace WBM
         MatMN<T, nv, nu> SelectionMat;  // selection matrix
 
     public:
-        Model(const pinocchio::ModelTpl<T>& pin_model_in, T BG_alpha_in=10, T BG_beta_in=0) :
+        Model(const pinocchio::ModelTpl<T>& pin_model_in, T BG_alpha_in=10) :
         pin_model(pin_model_in),
         pin_data(pinocchio::DataTpl<T>(pin_model_in)),
-        BG_alpha(BG_alpha_in),
-        BG_beta(BG_beta_in)
+        BG_alpha(BG_alpha_in)        
         {                      
             SelectionMat.setZero();            
             SelectionMat.diagonal(-(nv - nu)).setOnes();
@@ -93,6 +92,9 @@ namespace WBM
                                      const StateType& x, 
                                      const CtactStatusType& contact);
 
+        void get_footJacobians(MatMN<T, 3, nq> J_EE[4],
+                               const StateType& x);                                         
+
         void get_contactFootHeights(DVec<T>& EE_pos, 
                                    const StateType& x,
                                    const CtactStatusType& contact);
@@ -100,7 +102,7 @@ namespace WBM
         void get_footXYPositions(VecM<T,8>& EE_XY,
                                     const StateType& x);                                   
 
-        void get_footPositions(VecM<T,12>& EE_pos, 
+        void get_footPositions(VecM<T,3> EE_pos[4], 
                                const StateType& x);
 
         void printModelInfo();                                                
@@ -167,7 +169,6 @@ namespace WBM
 
         // Bamguart stablization
         T BG_alpha;
-        T BG_beta;
     
     private: 
         // pinocchio model and data
@@ -189,6 +190,11 @@ namespace WBM
 
 }
 
+template <typename T>
+void computeLegPosition(Vec3<T>& EE_pos_local, const Vec3<T>& qleg, int leg);
+
+template <typename T>
+void computeLegJacobian(MatMN<T, 3, 3>& EE_Jacobian_local, const Vec3<T>& qleg, int leg);
 
 
 #endif

@@ -47,7 +47,7 @@ void MHPCProblem<T>::prepare_initialization()
     srb_reference.set_quadruped_reference(quad_reference);
 
     /* Build whole-body model */
-    wbm_ptr = std::make_shared<WBM::Model<T>>(pin_model, pconfig->BG_alpha, pconfig->BG_beta);
+    wbm_ptr = std::make_shared<WBM::Model<T>>(pin_model, pconfig->BG_alpha);
 
      /* Build SRB model */
     srbm_ptr = std::make_shared<SRBM::Model<T>>();
@@ -128,15 +128,9 @@ void MHPCProblem<T>::prepare_initialization()
 template <typename T>
 void MHPCProblem<T>::initialize_parameters()
 {
-    /* Initialize REB and AL parameters for ineq and eq constraints */
-    grf_reb_param.delta = .1;
-    grf_reb_param.delta_min = 0.001;
-    grf_reb_param.eps = .01;    
-    torque_reb_param.delta = .1;
-    torque_reb_param.delta_min = 0.001;
-    torque_reb_param.eps = .1;
-    td_al_param.lambda = 0;
-    td_al_param.sigma = 100;
+    /* Initialize REB and AL parameters for ineq and eq constraints */    
+    const std::string& fname= "../MHPC/settings/constraint_params.info";
+    loadConstrintParameters(fname, grf_reb_param, torque_reb_param, td_al_param);
 }
 
 template <typename T>
@@ -175,7 +169,7 @@ void MHPCProblem<T>::initialize_multiPhaseProblem()
         phase->initialization();
 
         // Configure the set of shooting state
-        phase->update_SS_config(pdata->wb_phase_horizons[i]);
+        phase->update_SS_config(pdata->wb_phase_horizons[i]+1);
 
         pdata->wb_trajs.push_back(traj);
         pdata->wb_phases.push_back(phase);        
@@ -195,8 +189,7 @@ void MHPCProblem<T>::initialize_multiPhaseProblem()
         xr_k.setZero();
         for (int k(0); k <= pdata->srb_phase_horizon; k++)
         {            
-            srb_reference.get_reference_at_t(xr_k, pdata->srb_start_time + k * pconfig->dt_srb);
-            traj->X.at(k) = xr_k.cast<T>();
+            srb_reference.get_reference_at_t(xr_k, pdata->srb_start_time + k * pconfig->dt_srb);            
             traj->Xbar.at(k) = xr_k.cast<T>();
         }
 
@@ -210,7 +203,7 @@ void MHPCProblem<T>::initialize_multiPhaseProblem()
         phase->initialization();
 
          // Configure the set of shooting state
-        phase->update_SS_config(pdata->srb_phase_horizon);
+        phase->update_SS_config(pdata->srb_phase_horizon+1);
 
         pdata->srb_phase = phase;
         pdata->srb_traj = traj;
@@ -242,17 +235,17 @@ void MHPCProblem<T>::update()
 
 template <typename T>
 void MHPCProblem<T>::update_WB_plan()
-{
+{        
+    int nsteps = (int) round(pconfig->dt_mpc / pconfig->dt_wb);    
     float new_start_time = quad_reference->get_start_time();
-    float new_end_time = new_start_time + pconfig->plan_dur_wb;
-    int nsteps = (int) round(pconfig->dt_mpc / pconfig->dt_wb);
-    for (size_t j = 0; j < nsteps; j++)
-    {
-        /* update the front end */
-        pdata->wb_phase_start_times.front() += pconfig->dt_wb;
 
+    /* update the front end of WB phases */
+    for (size_t j = 0; j < nsteps; j++)
+    {                
+        float first_phase_start_time = pdata->wb_phase_start_times.front() + pconfig->dt_wb;        
+        
         // check whether the first phase shrinks to a point
-        if (approx_leq_scalar(pdata->wb_phase_end_times.front(), new_start_time))
+        if (approx_eq_scalar(pdata->wb_phase_end_times.front(), first_phase_start_time))
         {
             // If yes, remove the front phase
             pdata->pop_front_phase();
@@ -262,22 +255,26 @@ void MHPCProblem<T>::update_WB_plan()
             // else, pop_front one time step from the front phase and update phase horizon
             pdata->wb_phases.front()->pop_front();
             pdata->wb_phase_horizons.front()--;
-            pdata->wb_phase_start_times.front() = new_start_time;
+            pdata->wb_phase_start_times.front() = first_phase_start_time;
         }
-        
+    }
 
-        /* update the back end */        
+    /* update the back end of WB phases*/        
+    for (size_t j = 0; j < nsteps; j++)    
+    {   
         VecM<int, 4> new_contact;
-        quad_reference->get_contact_at_t(new_contact, new_end_time - new_start_time);
-        bool contact_change = (new_contact.cwiseNotEqual(pdata->wb_phase_contacts.back())).any();
-        // If there is contact change and the last phase reaches to the end, grow multi-phase problem by a new phase
+        float new_end_time = pdata->wb_phase_end_times.back() + pconfig->dt_wb;                                        
+        quad_reference->get_contact_at_t(new_contact, new_end_time - new_start_time);        
+        bool contact_change = (new_contact.cwiseNotEqual(pdata->wb_phase_contacts.back())).any();        
+        
+        // If there is contact change at next timestep, and the last phase  of current paln reaches to the end, grow the current problem by a new phase
         if (contact_change && pdata->wb_is_phase_reach_end.back())
-        {
+        {                        
             float new_phase_start_time = pdata->wb_phase_end_times.back();
             float new_phase_end_time = new_end_time;
-            
-            int new_phase_horizon = (int) round((new_phase_end_time - new_phase_start_time) / pconfig->dt_wb);
-            VecM<double, 4> new_contact_duration;
+            int new_phase_horizon = 1;
+
+            VecM<double, 4> new_contact_duration;                        
             quad_reference->get_contact_duration_at_t(new_contact_duration, new_end_time - new_start_time);
             pdata->wb_phase_start_times.push_back(new_phase_start_time);
             pdata->wb_phase_end_times.push_back(new_phase_end_time);            
@@ -288,7 +285,7 @@ void MHPCProblem<T>::update_WB_plan()
             pdata->n_wb_phases++;
 
             shared_ptr<Trajectory<T, WBM::xs, WBM::us, WBM::ys>> traj_to_add;
-            traj_to_add = make_shared<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>(pconfig->dt_wb, new_phase_horizon);
+            traj_to_add = make_shared<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>(pconfig->dt_wb, new_phase_horizon);         
 
             shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>> phase_to_add;
             phase_to_add = make_shared<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>();
@@ -301,7 +298,8 @@ void MHPCProblem<T>::update_WB_plan()
 
             pdata->wb_trajs.push_back(traj_to_add);
 
-            pdata->wb_phases.push_back(phase_to_add);
+            pdata->wb_phases.push_back(phase_to_add);            
+            
         }
         else
         // Else, grow the last phase by one time step
@@ -312,8 +310,8 @@ void MHPCProblem<T>::update_WB_plan()
             {
                 pdata->wb_is_phase_reach_end.back() = true;
                 add_tconstr_one_phase(pdata->wb_phases.back(), pdata->n_wb_phases - 1);
-            }
-            pdata->wb_phases.back()->push_back_default();
+            }           
+            pdata->wb_phases.back()->push_back_default();            
         }
                 
     }
@@ -326,11 +324,13 @@ void MHPCProblem<T>::update_WB_plan()
         /* Update the time offset of each phase */
         pdata->wb_phases[i]->set_time_offset(pdata->wb_phase_start_times[i] - pdata->wb_phase_start_times[0]);
 
-        pdata->wb_phases[i]->reset_params();
+        pdata->wb_phases[i]->reset_params();          
 
-        pdata->wb_phases[i]->update_SS_config(pdata->wb_phase_horizons[i]);
+         if (i < pdata->n_wb_phases - 1 || (i == pdata->n_wb_phases - 1 && pdata->wb_phase_horizons[i] > nsteps))
+        {
+            pdata->wb_phases[i]->update_SS_config(pdata->wb_phase_horizons[i]+1);
+        }
 
-        pdata->wb_trajs.front()->Ubar[0].setZero();
     }    
 }
 
@@ -355,8 +355,7 @@ void MHPCProblem<T>::update_SRB_plan()
     // Otherwise, keep the data, and only update the times
     pdata->srb_start_time = new_start_time;
     pdata->srb_end_time = new_end_time;
-    pdata->srb_phase->reset_params();
-    pdata->srb_traj->Ubar[0].setZero();
+    pdata->srb_phase->reset_params();    
     
 }
 
@@ -386,14 +385,22 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs,
     track_cost->set_reference(&wb_reference);
     phase->add_cost(track_cost);
 
-    /*To Do: Set foot regularization */
+    /*Set foot regularization */
+    shared_ptr<WBFootPlaceReg<T>> foot_reg;
+    foot_reg = make_shared<WBFootPlaceReg<T>>(phase_contact,quad_reference, wbm_ptr);
+    phase->add_cost(foot_reg);
+
+    /* Set foot clearance cost */
+    shared_ptr<SwingFootClearance<T>> swing_clearance;
+    swing_clearance = make_shared<SwingFootClearance<T>>(phase_contact);
+    phase->add_cost(swing_clearance);
 
     /* Torque limit */
     shared_ptr<MHPCConstraints::TorqueLimit<T>> torqueLimit;
     torqueLimit = std::make_shared<MHPCConstraints::TorqueLimit<T>>();
     torqueLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
     torqueLimit->create_data();
-    torqueLimit->initialize_params(grf_reb_param);
+    torqueLimit->initialize_params(torque_reb_param);
     phase->add_pathConstraint(torqueLimit);
 
     /* Set GRF constraints if any*/
@@ -430,7 +437,8 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, SRBM::xs
     shared_ptr<SRBTrackingCost<T>> track_cost;
     track_cost = make_shared<SRBTrackingCost<T>>();
     track_cost->set_reference(&srb_reference);
-    phase->add_cost(track_cost);             
+    phase->add_cost(track_cost);   
+        
 }
 
 template <typename T>
@@ -506,6 +514,10 @@ void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WB
         tdConstraint->create_data();
         tdConstraint->initialize_params(td_al_param);
         phase->add_terminalConstraint(tdConstraint);
+
+        // shared_ptr<ImpulseTerminalCost<T>> impulsePenalty;
+        // impulsePenalty = std::make_shared<ImpulseTerminalCost<T>>(phase_contact_cur, phase_contact_next, wbm_ptr);
+        // phase->add_cost(impulsePenalty);        
     }
 }
 

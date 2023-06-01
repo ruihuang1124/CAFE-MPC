@@ -11,7 +11,7 @@ int main()
 {
     // std::string reference_file_path = "../Reference/Data/quad_reference.csv";    
     MHPCConfig config;
-    std::string mhpc_config_file("../MHPC/mhpc_config.info");
+    std::string mhpc_config_file("../MHPC/settings/mhpc_config.info");
     loadMHPCConfig(mhpc_config_file, config);
     config.print();
 
@@ -27,8 +27,7 @@ int main()
     MHPCProblemData<double> pdata;
     pdata.quad_reference = quad_ref;
     problem.set_problem_data(&pdata, &config);
-    problem.prepare_initialization();
-    problem.pretty_print();
+    problem.prepare_initialization();    
     problem.initialize_parameters();
     problem.initialize_multiPhaseProblem();
 
@@ -66,25 +65,9 @@ int main()
 
     /* Solve th multiple-phase TO problem */
     HSDDP_OPTION ddp_setting;
-    std::string fname_ddp_setting("../MHPC/ddp_setting.info");
+    std::string fname_ddp_setting("../MHPC/settings/ddp_setting.info");
     loadHSDDPSetting(fname_ddp_setting, ddp_setting);
     ddp_setting.print();
-
-    /* Initial control guess */
-    for (auto &tau_i : pdata.wb_trajs)
-    {
-        for (size_t k = 0; k < tau_i->size(); k++)
-        {
-            tau_i->Ubar[k].setConstant(.0);                
-        }
-    }
-    if (pdata.srb_phase.get() != nullptr)
-    {
-        for (size_t k = 0; k < pdata.srb_traj->size() - 1; k++)
-        {
-            pdata.srb_traj->Ubar[k].setZero();                    
-        }
-    }
 
     /* Solve the multi-phase problem */
     solver.set_initial_condition(xinit);
@@ -97,12 +80,12 @@ int main()
         printf("Failed to initialize LCM \n");
     }
     visualize_quadState_lcmt state_visual_data;
-
+    problem.pretty_print();
     /* Run in MPC Loop */
     int loop = 0;
-    ddp_setting.max_AL_iter = 3;
+    ddp_setting.max_AL_iter = 2;
     ddp_setting.max_DDP_iter = 1;
-    while (loop <= 100)
+    while (loop <= 300)
     {
         loop++;
         std::copy(xinit.data(), xinit.data() + 3, state_visual_data.pos);
@@ -112,9 +95,10 @@ int main()
         std::copy(xinit.data() + 21, xinit.data() + 24, state_visual_data.eulrate);
         std::copy(xinit.data() + 24, xinit.data() + 36, state_visual_data.qJd);
         visualize_traj_lcm.publish("visualize_mc_state", &state_visual_data);
-        sleep(config.dt_mpc * 10);
+        usleep(1e6 * config.dt_mpc * 5.0);
 
         problem.update();
+        problem.pretty_print();
         multiple_phases.clear();
         for (auto phase : pdata.wb_phases)
         {
