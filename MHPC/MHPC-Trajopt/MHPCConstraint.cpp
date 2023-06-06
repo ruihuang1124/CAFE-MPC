@@ -20,10 +20,10 @@ MHPCConstraints::WBGRF<T>::WBGRF(const VecM<int, 4> &ctact)
 
     MatMN<T, 5, 3> A_leg;
     A_leg << 0, 0, 1,
-        -1, 0, sqrt(mu),
-        1, 0, sqrt(mu),
-        0, -1, sqrt(mu),
-        0, 1, sqrt(mu);
+        -1, 0, mu,
+        1, 0, mu,
+        0, -1, mu,
+        0, 1, mu;
 
     int i(0);
     for (size_t leg = 0; leg < 4; ++leg)
@@ -229,10 +229,10 @@ MHPCConstraints::SRBGRF<T>::SRBGRF(const VecM<int, 4> &ctact)
     b.setZero(this->size);
     MatMN<T, 5, 3> A_leg;
     A_leg << 0, 0, 1,
-        -1, 0, sqrt(mu),
-        1, 0, sqrt(mu),
-        0, -1, sqrt(mu),
-        0, 1, sqrt(mu);
+        -1, 0, mu,
+        1, 0, mu,
+        0, -1, mu,
+        0, 1, mu;
 
     int i(0);
     for (size_t leg = 0; leg < 4; ++leg)
