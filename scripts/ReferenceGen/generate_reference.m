@@ -41,6 +41,12 @@ for i = 1:tau_sz
 
     fprintf(fid, 'foot_placements\n');
     fprintf_array(fid, foot_placements(i, :), '%6.3f ');
+    
+    fprintf(fid, 'foot_velocities\n');
+    fprintf_array(fid, foot_velocities(i, :), '%6.3f ');
+
+%     fprintf(fid, 'foot_height\n');
+%     fprintf_array(fid, foot_heights(i, :), '%6.3f ');
 
     fprintf(fid, 'grf\n');
     fprintf_array(fid, GRFs(i, :), '%6.3f ');
