@@ -87,10 +87,11 @@ inline void loadConstrintParameters(const std::string&fileName,
 }
 
 
-
 template <typename T>
 struct MHPCProblemData
 {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     std::deque<shared_ptr<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>> wb_trajs;
     std::deque<shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>> wb_phases;
 
@@ -169,11 +170,12 @@ struct MHPCProblemData
 };
 
 
-
 template <typename T>
 class MHPCProblem
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    
     MHPCProblem():pdata(nullptr),
                   quad_reference(nullptr),
                   pconfig(nullptr),

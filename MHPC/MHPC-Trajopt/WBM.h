@@ -105,6 +105,12 @@ namespace WBM
         void get_footPositions(VecM<T,3> EE_pos[4], 
                                const StateType& x);
 
+        void get_footVelocities(VecM<T,3> EE_vel[4], 
+                               const StateType& x);
+
+        void get_footVelDerivatives(MatMN<T, 3, nv> J_EE[4],
+                               const StateType& x);                                                           
+
         void printModelInfo();                                                
 
     private:
@@ -186,6 +192,9 @@ namespace WBM
         // Partial of J'F in world frame (for all foot)
         std::vector<MatMN<T, nv, nv>>  dJTF_dq_EE;       
         MatMN<T, nv, nv> dJTF_dq; 
+
+        // Tempory variables
+        StateMapType Ac_;        
     };
 
 }

@@ -207,6 +207,38 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
             }    
 
             continue;
+        }  
+
+         if (line.find("foot_velocities") != std::string::npos)
+        {
+            getline(fstrm, line);           // Get the next line
+            std::stringstream lstrm(line);  // Break the line to words (default delimeter is " ")
+
+            int i = 0;
+            while (lstrm >> word)
+            {
+                quad_state.foot_velocities[i] = std::stof(word);
+                i++;
+                if (i >= 3 * nLegs) break;
+            }    
+
+            continue;
+        }  
+
+         if (line.find("foot_height") != std::string::npos)
+        {
+            getline(fstrm, line);           // Get the next line
+            std::stringstream lstrm(line);  // Break the line to words (default delimeter is " ")
+
+            int i = 0;
+            while (lstrm >> word)
+            {
+                quad_state.foot_heights[i] = std::stof(word);
+                i++;
+                if (i >= nLegs) break;
+            }    
+
+            continue;
         }       
 
         if (line.find("grf") != std::string::npos)
@@ -251,7 +283,7 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
             {
                 quad_state.contact[i] = std::stoi(word);
                 i++;
-                if (i >= 3 * nLegs) break;
+                if (i >= nLegs) break;
             }    
 
             continue;
@@ -267,7 +299,7 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
             {
                 quad_state.status_dur[i] = std::stof(word);
                 i++;
-                if (i >= 3 * nLegs) break;
+                if (i >= nLegs) break;
             }    
 
             tp_data.push_back(quad_state);           
@@ -306,6 +338,9 @@ void QuadReference::reorder_states()
         state_reordered.qJd.setZero();
         state_reordered.foot_placements << state_org.foot_placements.segment<3>(3), state_org.foot_placements.head<3>(), 
                                            state_org.foot_placements.tail<3>(), state_org.foot_placements.segment<3>(6);
+
+        state_reordered.foot_velocities << state_org.foot_velocities.segment<3>(3), state_org.foot_velocities.head<3>(), 
+                                           state_org.foot_velocities.tail<3>(), state_org.foot_velocities.segment<3>(6);                                        
 
         state_reordered.grf << state_org.grf.segment<3>(3), state_org.grf.head<3>(), state_org.grf.tail<3>(), state_org.grf.segment<3>(6);                                               
 

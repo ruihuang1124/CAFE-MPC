@@ -94,6 +94,10 @@ void MHPCLocomotion<T>::initialize()
 
     publish_mpc_cmd();
 
+#ifdef DEBUG_MODE
+    mhpc_viz.publishWBTrajectory(&opt_problem_data);
+#endif    
+
     // run-time DDP setting when re-solving DDP in MPC 
     ddp_setting.max_AL_iter = ddp_setting.max_AL_iter_runtime;
     ddp_setting.max_DDP_iter = ddp_setting.max_DDP_iter_runtime;    
@@ -153,9 +157,8 @@ void MHPCLocomotion<T>::update()
 #endif
 
     publish_mpc_cmd();
-#ifdef DEBUG_MODE
-    // publish_debugfoot();
-    // opt_problem.lcm_publish();
+#ifdef DEBUG_MODE    
+    mhpc_viz.publishWBTrajectory(&opt_problem_data);
 #endif
     mpc_mutex.unlock();
 }
@@ -211,7 +214,11 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
         const VecM<float, WBM::xs>& x_float = trajs[pidx]->Xbar[k_rel].template cast<float>();
         const VecM<float, WBM::us>& u_float = trajs[pidx]->Ubar[k_rel].template cast<float>();
+        const VecM<float, WBM::ys>& GRF_float = trajs[pidx]->Y[k_rel].template cast<float>();
         const MatMN<float, WBM::us, WBM::xs>& K_float = trajs[pidx]->K[k_rel].template cast<float>();
+        const VecM<float, WBM::us>& Qu_float = trajs[pidx]->Qu[k_rel].template cast<float>();
+        const MatMN<float, WBM::us, WBM::us>& Quu_float = trajs[pidx]->Quu[k_rel].template cast<float>();
+        const MatMN<float, WBM::us, WBM::xs>& Qux_float = trajs[pidx]->Qux[k_rel].template cast<float>();
 
         std::copy(x_float.begin(), x_float.begin()+3, mpc_cmd.pos[k]);
 
@@ -225,7 +232,15 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
         std::copy(x_float.data()+24, x_float.data()+36,mpc_cmd.qJd[k]);
 
-        std::copy(u_float.begin(), u_float.end(), mpc_cmd.torque[k]);        
+        std::copy(u_float.begin(), u_float.end(), mpc_cmd.torque[k]);     
+
+        std::copy(GRF_float.begin(), GRF_float.end(), mpc_cmd.GRF[k]);  
+
+        std::copy(Qu_float.begin(), Qu_float.end(), mpc_cmd.Qu[k]);
+
+        std::copy(Quu_float.data(), Quu_float.data()+144, mpc_cmd.Quu[k]);
+
+        std::copy(Qux_float.data(), Qux_float.data()+432, mpc_cmd.Qux[k]); 
 
         std::copy(K_float.data(), K_float.data()+432, mpc_cmd.feedback[k]);
 

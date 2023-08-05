@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cassert>
 #include <iostream>
+#include<eigen3/Eigen/StdVector>
 #include "HSDDP_CPPTypes.h"
 #include "HSDDP_Utils.h"
 
@@ -18,7 +19,9 @@ struct QuadAugmentedState
     VecM<double, 12> body_state;      // [eul, pos, ang, vel]
     VecM<double, 12> qJ;              // joint angle
     VecM<double, 12> qJd;             // joint velocity
-    VecM<double, 12> foot_placements; // foothold position reference (zero if in swing) in world frame
+    VecM<double, 12> foot_placements; // foot position in world frame
+    VecM<double, 12> foot_velocities; // foot velocity in world frame
+    VecM<double, 4>  foot_heights;    // swing foot trajectory 
     VecM<double, 12> grf;             // GRF reference (zero if in swing) in world frame
     VecM<double, 12> torque;          // Joint torque reference
     VecM<int, 4> contact;            // contact status
@@ -30,6 +33,8 @@ struct QuadAugmentedState
         qJ.setZero();
         qJd.setZero();
         foot_placements.setZero();
+        foot_velocities.setZero();
+        foot_heights.setZero();
         grf.setZero();
         torque.setZero();
         contact.setZero();
@@ -49,6 +54,12 @@ struct QuadAugmentedState
 
         std::cout << "foot_placements = \n";
         std::cout << foot_placements.transpose() << "\n";
+
+        std::cout << "foot_velocities = \n";
+        std::cout << foot_velocities.transpose() << "\n";
+
+        std::cout << "swing_foot_heights = \n";
+        std::cout << foot_heights.transpose() << "\n";
 
         std::cout << "grf = \n";
         std::cout << grf.transpose() << "\n";
@@ -102,13 +113,17 @@ public:
 
     QuadAugmentedState& operator[](size_t k)
     {
+#ifdef DEBUG_MODE
         assert((k < astates.size()));
+#endif                
         return astates[k];
     }    
 
     QuadAugmentedState& at(size_t k)
     {
+#ifdef DEBUG_MODE        
         assert((k < astates.size()));
+#endif        
         return astates[k];
     }
 

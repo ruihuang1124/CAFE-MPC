@@ -108,7 +108,15 @@ int main()
         {
             multiple_phases.push_back(pdata.srb_phase);
         }
-        xinit = pdata.wb_trajs.front()->Xbar.front();
+        // if(pdata.wb_trajs.front()->size()>=3)
+        // {
+        //     xinit = pdata.wb_trajs.front()->Xbar[2];
+        // }else
+        // {
+        //     xinit = pdata.wb_trajs[1]->Xbar[0];
+        // }
+        
+        xinit = pdata.wb_trajs.front()->Xbar[0];                
         solver.set_initial_condition(xinit);
         solver.set_multiPhaseProblem(multiple_phases);
         solver.solve(ddp_setting);

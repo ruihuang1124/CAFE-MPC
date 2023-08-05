@@ -72,6 +72,9 @@ public:
     deque<T> V;
     deque<T> dV;    
     deque<VecM<T, us>> dU;
+    deque<VecM<T, us>> Qu;
+    deque<MatMN<T, us, us>> Quu;
+    deque<MatMN<T, us, xs>> Qux;
     deque<VecM<T, xs>> G;
     deque<MatMN<T, xs, xs>> H;
     deque<MatMN<T, us, xs>> K;

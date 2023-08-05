@@ -12,6 +12,7 @@
 #include "MHPC_Data_lcmt.hpp"
 #include "MHPCProblem.h"
 #include "MultiPhaseDDP.h"
+#include "MHPCUtils.h"
 
 template<typename T>
 class MHPCLocomotion
@@ -70,6 +71,8 @@ public:
 
     // solve time
     float solve_time;
+
+    MHPCVisualization mhpc_viz;    
 };
 
 

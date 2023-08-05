@@ -218,7 +218,7 @@ void MHPCConstraints::WBTouchDown<T>::compute_partial(const State &x)
 template <typename T>
 MHPCConstraints::SRBGRF<T>::SRBGRF(const VecM<int, 4> &ctact)
     : PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>("GRF"),
-      mu_fric(1.0)
+      mu_fric(0.7)
 {
     ctact_status = ctact;
     int n_constrained_foot = ctact.cwiseEqual(1).cast<int>().sum();

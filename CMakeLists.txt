@@ -2,14 +2,14 @@ project(MPC_CONTROLLER)
 
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_FLAGS "-Ofast -no-pie -Wall \
-    -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2 \
+set(CMAKE_CXX_FLAGS "-O3 -no-pie -march=native -Wall \
+    -Wextra -Wcast-align -Wformat=2 \
     -Winit-self -Wmissing-include-dirs -Woverloaded-virtual \
     -Wshadow -Wsign-promo")
 
-set(CMAKE_C_FLAGS "-Ofast -Wall -Wextra -std=gnu99 -I")
+set(CMAKE_C_FLAGS "-O3 -march=native -Wall -Wextra -std=gnu99 -I")
 
 
 include_directories(${PROJECT_SOURCE_DIR})

@@ -21,6 +21,7 @@ class Animator:
 
     def initialization(self):
         self.pb.configureDebugVisualizer(pb.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+        self.pb.configureDebugVisualizer(pb.COV_ENABLE_GUI,0)
         self.pb.setAdditionalSearchPath(pd.getDataPath())
         self.pb.setGravity(0,0,0)
 

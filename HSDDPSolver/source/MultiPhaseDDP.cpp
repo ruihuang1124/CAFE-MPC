@@ -279,6 +279,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
     eqn_feas_buffer.push_back(max_tconstr);
     ineq_feas_buffer.push_back(max_pconstr);
 
+    T regularization = 0;
     while (iter_ou < option.max_AL_iter)
     {
         iter_ou++;
@@ -299,7 +300,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
         time_partial = duration.count();
 #endif
 
-        T regularization = 0;
+        regularization = 0;
         iter_in = 0;
         while (iter_in < option.max_DDP_iter)
         {
@@ -410,7 +411,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
     if (iter_ou >= option.max_AL_iter)
     {
         printf("maximum iteration reached \n");
-    }
+    }   
 
     std::cout << "total cost = " << std::setprecision(print_precision) << actual_cost << std::endl;
     std::cout << "terminal constraint violation = " << std::setprecision(print_precision) << max_tconstr << std::endl;

@@ -225,10 +225,10 @@ private:
     
     // Q matrices 
     VecM<T, xs> Qx;
-    VecM<T, us> Qu;
     MatMN<T, xs, xs> Qxx;
-    MatMN<T, us, us> Quu;
-    MatMN<T, us, xs> Qux;
+    deque<VecM<T, us>>* Qu = nullptr;
+    deque<MatMN<T, us, us>>* Quu = nullptr;
+    deque<MatMN<T, us, xs>>* Qux = nullptr;
     MatMN<T, xs, xs> Ixx;
     MatMN<T, us, us> Iuu;   
     Chol<T> Qxx_chol;

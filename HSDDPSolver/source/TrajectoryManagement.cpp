@@ -26,6 +26,9 @@ void Trajectory<T, xs, us, ys>::create_data(T timeStep_, int horizon_)
     V.assign(horizon + 1, 0);
     dV.assign(horizon + 1, 0);
     dU.assign(horizon, VecM<T, us>::Zero());
+    Qu.assign(horizon, VecM<T, us>::Zero());
+    Quu.assign(horizon, MatMN<T, us, us>::Zero());
+    Qux.assign(horizon, MatMN<T, us, xs>::Zero());
     G.assign(horizon + 1, VecM<T, xs>::Zero());
     H.assign(horizon + 1, MatMN<T, xs, xs>::Zero());
     K.assign(horizon + 1, MatMN<T, us, xs>::Zero());
@@ -55,6 +58,9 @@ void Trajectory<T, xs, us, ys>::clear()
     V.clear();
     dV.clear();
     dU.clear();
+    Qu.clear();
+    Quu.clear();
+    Qux.clear();
     G.clear();
     H.clear();
     K.clear();
@@ -87,6 +93,9 @@ void Trajectory<T, xs, us, ys>::zero_all()
     set_scalar_deque_zero(V);
     set_scalar_deque_zero(dV);
     set_eigen_deque_zero(dU);
+    set_eigen_deque_zero(Qu);
+    set_eigen_deque_zero(Quu);
+    set_eigen_deque_zero(Qux);
     set_eigen_deque_zero(G);
     set_eigen_deque_zero(H);
     set_eigen_deque_zero(K);
@@ -99,6 +108,9 @@ void Trajectory<T, xs, us, ys>::zero_val_approx()
     set_scalar_deque_zero(V);
     set_scalar_deque_zero(dV);
     set_eigen_deque_zero(dU);
+    set_eigen_deque_zero(Qu);
+    set_eigen_deque_zero(Quu);
+    set_eigen_deque_zero(Qux);
     set_eigen_deque_zero(G);
     set_eigen_deque_zero(H);
     set_eigen_deque_zero(K);
@@ -135,6 +147,9 @@ void Trajectory<T, xs, us, ys>::pop_front()
     V.pop_front();
     dV.pop_front();
     dU.pop_front();
+    Qu.pop_front();
+    Quu.pop_front();
+    Qux.pop_front();
     G.pop_front();
     H.pop_front();
     K.pop_front();
@@ -166,6 +181,9 @@ void Trajectory<T, xs, us, ys>::push_back_zero()
     V.push_back(T(0));
     dV.push_back(T(0));
     dU.push_back(VecM<T, us>::Zero());
+    Qu.push_back(VecM<T, us>::Zero());
+    Quu.push_back(MatMN<T, us, us>::Zero());
+    Qux.push_back(MatMN<T, us, xs>::Zero());
     G.push_back(VecM<T, xs>::Zero());
     H.push_back(MatMN<T, xs, xs>::Zero());
     K.push_back(MatMN<T, us, xs>::Zero());
@@ -197,6 +215,9 @@ void Trajectory<T, xs, us, ys>::push_back_state(const DVec<T>& state_to_add)
     V.push_back(T(0));
     dV.push_back(T(0));
     dU.push_back(VecM<T, us>::Zero());
+    Qu.push_back(VecM<T, us>::Zero());
+    Quu.push_back(MatMN<T, us, us>::Zero());
+    Qux.push_back(MatMN<T, us, xs>::Zero());
     G.push_back(VecM<T, xs>::Zero());
     H.push_back(MatMN<T, xs, xs>::Zero());
     K.push_back(MatMN<T, us, xs>::Zero());

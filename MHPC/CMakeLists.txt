@@ -8,7 +8,7 @@ include_directories("../Reference")
 add_subdirectory(MHPC-Trajopt)
 
 # Add *.cpp files to the executable file
-add_executable(mhpc_run mpc_main.cpp MHPCLocomotion.cpp)
+add_executable(mhpc_run mpc_main.cpp MHPCLocomotion.cpp MHPCUtils.cpp)
 
 # Add target specific include include_directories
 target_include_directories(mhpc_run PUBLIC "MHPC-Trajopt")

@@ -390,10 +390,15 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs,
     foot_reg = make_shared<WBFootPlaceReg<T>>(phase_contact,quad_reference, wbm_ptr);
     phase->add_cost(foot_reg);
 
-    /* Set foot clearance cost */
-    shared_ptr<SwingFootClearance<T>> swing_clearance;
-    swing_clearance = make_shared<SwingFootClearance<T>>(phase_contact);
-    phase->add_cost(swing_clearance);
+    /* Swing foot posiiton tracking */   
+    shared_ptr<SwingFootPosTracking<T>> swing_pos_tracking;
+    swing_pos_tracking = make_shared<SwingFootPosTracking<T>>(phase_contact, quad_reference, wbm_ptr);
+    phase->add_cost(swing_pos_tracking);
+
+    /* Swing foot velocity tracking */
+    shared_ptr<SwingFootVelTracking<T>> swing_vel_tracking;
+    swing_vel_tracking = make_shared<SwingFootVelTracking<T>>(phase_contact, quad_reference, wbm_ptr);
+    phase->add_cost(swing_vel_tracking);
 
     /* Torque limit */
     shared_ptr<MHPCConstraints::TorqueLimit<T>> torqueLimit;
@@ -506,7 +511,7 @@ void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WB
         }
     }    
 
-    /* Set touchdown constraint if any */
+    /* Set touchdown constraint and cost if any touchdown happens */
     if (find_eigen(touchdown_status, 1).size() > 0)
     {
         shared_ptr<MHPCConstraints::WBTouchDown<T>> tdConstraint;
@@ -515,9 +520,9 @@ void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WB
         tdConstraint->initialize_params(td_al_param);
         phase->add_terminalConstraint(tdConstraint);
 
-        // shared_ptr<ImpulseTerminalCost<T>> impulsePenalty;
-        // impulsePenalty = std::make_shared<ImpulseTerminalCost<T>>(phase_contact_cur, phase_contact_next, wbm_ptr);
-        // phase->add_cost(impulsePenalty);        
+        shared_ptr<TDVelocityPenalty<T>> tdVelPenalty;
+        tdVelPenalty = std::make_shared<TDVelocityPenalty<T>>(touchdown_status, wbm_ptr);
+        phase->add_cost(tdVelPenalty);               
     }
 }
 

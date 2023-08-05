@@ -7,11 +7,8 @@
 template <typename T, size_t xs, size_t us, size_t ys>
 SinglePhase<T, xs, us, ys>::SinglePhase()
 {
-    Qx.setZero();
-    Qu.setZero();
-    Qxx.setZero();
-    Quu.setZero();
-    Qux.setZero();
+    Qx.setZero();    
+    Qxx.setZero();        
     Ixx.setIdentity();
     Iuu.setIdentity();
     Quu_inv.setZero();
@@ -321,25 +318,25 @@ bool SinglePhase<T, xs, us, ys>::backward_sweep(T regularization, DVec<T> Gprime
 
         // standard update equations for Q
         Qx = rcost.lx + Ak.transpose() * Gnext;
-        Qu = rcost.lu + Bk.transpose() * Gnext;
+        Qu->at(k) = rcost.lu + Bk.transpose() * Gnext;
         Qxx = rcost.lxx + Ak.transpose() * Hnext * Ak;
-        Quu = rcost.luu + Bk.transpose() * Hnext * Bk;
-        Qux = rcost.lux + Bk.transpose() * Hnext * Ak;
+        Quu->at(k) = rcost.luu + Bk.transpose() * Hnext * Bk;
+        Qux->at(k) = rcost.lux + Bk.transpose() * Hnext * Ak;
 
         if (ys > 0)
         {
             Qx += Ck.transpose() * rcost.ly;
-            Qu += Dk.transpose() * rcost.ly;
+            Qu->at(k) += Dk.transpose() * rcost.ly;
             Qxx += Ck.transpose() * rcost.lyy * Ck;
-            Quu += Dk.transpose() * rcost.lyy * Dk;
-            Qux += Dk.transpose() * rcost.lyy * Ck;
+            Quu->at(k) += Dk.transpose() * rcost.lyy * Dk;
+            Qux->at(k) += Dk.transpose() * rcost.lyy * Ck;
         }
         
 
         // regularizatoin
         Qxx += Ixx * regularization;
-        Quu += Iuu * regularization;
-        Quu_chol = Quu_chol.compute(Quu - Iuu * 1e-9); // Cholesky decomposition of Quu
+        Quu->at(k) += Iuu * regularization;
+        Quu_chol = Quu_chol.compute(Quu->at(k) - Iuu * 1e-9); // Cholesky decomposition of Quu
         // If Quu not PSD, break and return false
         if (!Quu_chol.isPositive())
         {
@@ -348,15 +345,15 @@ bool SinglePhase<T, xs, us, ys>::backward_sweep(T regularization, DVec<T> Gprime
         }
         // compute value function approximation and sum up expected cost change at each time step
         // Symmetrize Quu_inv and Qxx. Numerical issue would occur otherwise.
-        Quu_inv = (Quu.inverse() + Quu.inverse().transpose()) / 2;
+        Quu_inv = (Quu->at(k).inverse() + Quu->at(k).inverse().transpose()) / 2;
         Qxx = (Qxx + Qxx.transpose()) / 2;
 
         // compute value function approximation
-        dU->at(k) = -Quu_inv * Qu;
-        K->at(k) = -Quu_inv * Qux;
-        G->at(k) = Qx - Qux.transpose() * Quu_inv * Qu;
-        H->at(k) = Qxx - Qux.transpose() * Quu_inv * Qux;
-        T dV_k = -Qu.transpose() * dU->at(k);
+        dU->at(k) = -Quu_inv * Qu->at(k);
+        K->at(k) = -Quu_inv * Qux->at(k);
+        G->at(k) = Qx - Qux->at(k).transpose() * Quu_inv * Qu->at(k);
+        H->at(k) = Qxx - Qux->at(k).transpose() * Quu_inv * Qux->at(k);
+        T dV_k = -Qu->at(k).transpose() * dU->at(k);
 
         dV_1 -= dV_k;
         dV_2 += dV_k;
@@ -460,6 +457,9 @@ void SinglePhase<T, xs, us, ys>::update_trajectory_ptrs()
     dV = &(traj->dV);
     dU = &(traj->dU);
     K = &(traj->K);
+    Qu = &(traj->Qu);
+    Quu = &(traj->Quu);
+    Qux = &(traj->Qux);
     G = &(traj->G);
     H = &(traj->H);
     rcostData = &(traj->rcostData);

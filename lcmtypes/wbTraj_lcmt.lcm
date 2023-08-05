@@ -1,0 +1,10 @@
+struct wbTraj_lcmt {
+    int32_t sz;
+    double pos[sz][3];
+    double eul[sz][3];
+    double vWorld[sz][3];
+    double eulrate[sz][3];
+    double qJ[sz][12];
+    double qJd[sz][12];    
+    double torque[sz][12];
+}

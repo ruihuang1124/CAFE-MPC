@@ -1,10 +1,13 @@
 #include "WBM.h"
 #include "casadiGen_MHPC.h"
 
+#include <pinocchio/fwd.hpp>
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 #include "pinocchio/algorithm/frames.hpp"
 #include "pinocchio/algorithm/aba.hpp"
+#include "pinocchio/algorithm/rnea.hpp"
+
 
 /*
     @brief: discrete-time dynamics
@@ -19,12 +22,7 @@ void WBM::Model<T>::dynamics(StateType &xnext, OutputType &y,
 
     // Update next state with Forward Euler
     xnext.template head<nq>() = q + v * dt;
-    xnext.template tail<nv>() = v + qdd * dt;
-
-    // // Update next state with Semi-Implicit Euler    
-    // xnext.template tail<nv>() = v + qdd * dt;
-    // const auto& vnext = xnext.template tail<nv>();
-    // xnext.template head<nq>() = q + vnext * dt;    
+    xnext.template tail<nv>() = v + qdd * dt;   
 }
 
 /*
@@ -59,19 +57,12 @@ void WBM::Model<T>::dynamics_partial(StateMapType &A, ContrlMapType &B, OutputMa
 {
     (void)(t);
 
-    dynamics_partial_continuousTime(A, B, C, D, x, u, contact);
+    dynamics_partial_continuousTime(Ac_, B, C, D, x, u, contact);
 
     // Forward Euler
-    A *= dt;
-    A += StateMapType::Identity();
+    A = Ac_ * dt + StateMapType::Identity();    
     B *= dt;
 
-    // // Semi-Implicit Euler
-    // A *= dt;
-    // A += StateMapType::Identity();
-    // A.template topLeftCorner<nq, nq>() = MatMN<T,nq,nq>::Identity() + A.template bottomLeftCorner<nv, nq>() * dt;
-    // A.template topRightCorner<nq, nv>() = A.template bottomRightCorner<nv,nv>() * dt;
-    // B *= dt;
 }
 
 template <typename T>
@@ -234,7 +225,7 @@ void WBM::Model<T>::get_footXYPositions(VecM<T, 8> &EE_XY, const StateType &x)
 }
 
 /*
-    @brief: Get all foot positions
+    @brief: Get all foot positions in world frame
 */
 template <typename T>
 void WBM::Model<T>::get_footPositions(VecM<T,3> EE_pos[4], const StateType &x)
@@ -244,6 +235,24 @@ void WBM::Model<T>::get_footPositions(VecM<T,3> EE_pos[4], const StateType &x)
     {
         pinocchio::updateFramePlacement(pin_model, pin_data, contactFootFrameIds[i]);
         EE_pos[i] = pin_data.oMf[contactFootFrameIds[i]].translation().template head<3>();
+    }
+}
+
+
+/*
+    @brief: Get all foot velocities in world frame
+*/
+template <typename T>
+void WBM::Model<T>::get_footVelocities(VecM<T,3> EE_vel[4], const StateType &x)
+{            
+    const auto& q_temp = x.template head<nq>();
+    const auto& v_temp = x.template tail<nv>();
+    pinocchio::forwardKinematics(pin_model, pin_data, q_temp, v_temp);
+    for (size_t i = 0; i < 4; i++)
+    {
+        pinocchio::updateFramePlacement(pin_model, pin_data, contactFootFrameIds[i]);        
+
+        EE_vel[i] = pinocchio::getFrameVelocity(pin_model, pin_data, contactFootFrameIds[i], pinocchio::LOCAL_WORLD_ALIGNED).toVector().head(3);        
     }
 }
 
@@ -280,6 +289,8 @@ void WBM::Model<T>::get_footJacobians(MatMN<T, 3, nq> J_EE[4], const StateType& 
     
     for (size_t i(0); i < 4; ++i)
     {
+        pinocchio::updateFramePlacement(pin_model, pin_data, contactFootFrameIds[i]);
+
         // Get spatial Jacobian
         J_6D.setZero();
         pinocchio::getFrameJacobian(pin_model, pin_data, contactFootFrameIds[i], pinocchio::LOCAL_WORLD_ALIGNED, J_6D);
@@ -297,10 +308,16 @@ void WBM::Model<T>::KKTContactDynamics()
     J_activeEE.setZero(3 * N_contacts, nv);
     if (N_contacts > 0)
     {
-        // // Compute contact Jacobian for each contact point
-        pinocchio::computeJointJacobians(pin_model, pin_data, q);        
+        // Run forward kinematics, and compute the drift term Jdot * qdot
+        pinocchio::forwardKinematics(pin_model, pin_data, q, v, VecM<T, nv>::Zero());
+
+        // Compute contact Jacobian for each contact point
+        pinocchio::computeJointJacobians(pin_model, pin_data);        
         for (size_t i(0); i < N_contacts; ++i)
         {
+            // Update contact foot placement
+            pinocchio::updateFramePlacement(pin_model, pin_data, contactFrameIds_cur[i]);
+
             // Get spatial Jacobian
             J_6D.setZero();
             pinocchio::getFrameJacobian(pin_model, pin_data, contactFrameIds_cur[i], pinocchio::LOCAL_WORLD_ALIGNED, J_6D);
@@ -308,17 +325,14 @@ void WBM::Model<T>::KKTContactDynamics()
             // The top three rows of spatial Jacian corresponds to translation
             J_activeEE.block(3 * i, 0, 3, pin_model.nv) = J_6D.topRows(3);
         }
-
-        // Compute the drift term Jdot * qdot
-        pinocchio::forwardKinematics(pin_model, pin_data, q, v, VecM<T, nv>::Zero());
+        
         gamma_activeEE.setZero(3 * N_contacts);
         for (size_t i(0); i < N_contacts; ++i)
         {
-            // Get spatial acceleration of contact frame
-            ac_6D = pinocchio::getFrameAcceleration(pin_model, pin_data, contactFrameIds_cur[i], pinocchio::LOCAL_WORLD_ALIGNED).toVector();
+            // Get spatial acceleration of contact frame            
 
             // Linear component of spatial acceleration
-            gamma_activeEE.segment(3 * i, 3) = ac_6D.head(3);
+            gamma_activeEE.segment(3 * i, 3) = pinocchio::getFrameAcceleration(pin_model, pin_data, contactFrameIds_cur[i], pinocchio::LOCAL_WORLD_ALIGNED).linear();
 
             // Convert to conventional acceleration
             vc_6D = pinocchio::getFrameVelocity(pin_model, pin_data, contactFrameIds_cur[i], pinocchio::LOCAL_WORLD_ALIGNED).toVector();
@@ -329,7 +343,10 @@ void WBM::Model<T>::KKTContactDynamics()
             // Bamguart stabilization                        
             gamma_activeEE.segment(3 * i, 3) += 2 * BG_alpha*vv_c;            
         }
-        qdd = pinocchio::forwardDynamics(pin_model, pin_data, q, v, tau, J_activeEE, gamma_activeEE, 1e-12);
+        pinocchio::crba(pin_model, pin_data, q);
+        pinocchio::nonLinearEffects(pin_model, pin_data, q, v);        
+        qdd = pinocchio::forwardDynamics(pin_model, pin_data, tau, J_activeEE, gamma_activeEE, 1e-12);
+
         // Map contact force
         for (size_t i = 0; i < N_contacts; i++)
         {
@@ -346,12 +363,18 @@ void WBM::Model<T>::KKTContactDynamics()
 template <typename T>
 void WBM::Model<T>::KKTImpact()
 {
-    // // Compute contact Jacobian for each contact point
-    pinocchio::computeJointJacobians(pin_model, pin_data, q);
+    // Run forward kinematics
+    pinocchio::forwardKinematics(pin_model, pin_data, q);
+
+    // Compute contact Jacobian for each contact point
+    pinocchio::computeJointJacobians(pin_model, pin_data);
     impulse.setZero();
     J_activeEE.setZero(3 * N_contacts, nv);
     for (size_t i(0); i < N_contacts; ++i)
-    {
+    {   
+        // Update contact foot placement
+        pinocchio::updateFramePlacement(pin_model, pin_data, contactFrameIds_cur[i]);
+
         // Get spatial Jacobian
         J_6D.setZero();
         pinocchio::getFrameJacobian(pin_model, pin_data, contactFrameIds_cur[i], pinocchio::LOCAL_WORLD_ALIGNED, J_6D);
@@ -496,6 +519,32 @@ void WBM::Model<T>::computeFootVelDerivatives(VecM<T,nq>&q_, VecM<T,nv>&v_)
     {
         dv_dq_activeEE.block(3 * i, 0, 3, nv) = dv_dq_EE[contactFootIds_cur[i]];
     }
+}
+
+/*
+    @brief: Compute the Partial of foot velocity w.r.t. q for all foot
+*/
+template <typename T>
+void WBM::Model<T>::get_footVelDerivatives(MatMN<T, 3, nv> J_EE[4], const StateType& x)
+{
+    VecM<T, nq> q_temp= x.template head<nq>();
+    VecM<T, nv> v_temp= x.template tail<nv>();
+
+    std::vector<T *> arg = {q_temp.data(), v_temp.data()};
+
+    for (int i = 0; i < 4; i++)
+    {
+        J_EE[i].setZero();
+    }
+    
+    std::vector<T *> res = {J_EE[0].data(),
+                            J_EE[1].data(),
+                            J_EE[2].data(),
+                            J_EE[3].data()};
+
+    casadi_interface(arg, res, J_EE[0].size(), footVelPartialDq,
+                     footVelPartialDq_sparsity_out,
+                     footVelPartialDq_work);    
 }
 
 /*

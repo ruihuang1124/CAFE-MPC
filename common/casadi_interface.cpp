@@ -18,8 +18,10 @@ void casadi_interface(std::vector<T *> ARG, std::vector<T *> RES, int max_sz_res
     // get the size of each input and output variables
     f_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
 
+#ifdef DEBUG_MODE
     assert(ARG.size()<=sz_arg);
     assert(RES.size()<=sz_res);
+#endif    
 
     for (size_t idx_arg = 0; idx_arg < ARG.size(); idx_arg++)
     {
