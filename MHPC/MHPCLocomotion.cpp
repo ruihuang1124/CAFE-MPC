@@ -8,7 +8,6 @@
 
 #include "MHPCLocomotion.h"
 
-
 #ifdef TIME_BENCHMARK
 #include <chrono>
 using namespace std::chrono;
@@ -19,40 +18,40 @@ template <typename T>
 void MHPCLocomotion<T>::initialize()
 {
     // Clear problem data (used for Monte Carlo sim)
-    opt_problem_data.clear();   
+    opt_problem_data.clear();
 
-    // Load MHPC config    
-    std::string mhpc_config_file("../MHPC/settings/mhpc_config.info");    
+    // Load MHPC config
+    std::string mhpc_config_file("../MHPC/settings/mhpc_config.info");
     loadMHPCConfig(mhpc_config_file, mpc_config);
     mpc_config.print();
-    
-    // Load DDP setting        
+
+    // Load DDP setting
     std::string ddp_setting_file("../MHPC/settings/ddp_setting.info");
-    loadHSDDPSetting(ddp_setting_file, ddp_setting);        
+    loadHSDDPSetting(ddp_setting_file, ddp_setting);
 
     // Load reference trajectory
-    printf("Loading quadruped reference ... \n");    
+    printf("Loading quadruped reference ... \n");
     std::string quad_reference_file("../Reference/Data/");
     quad_reference_file.append(mpc_config.referenceFileName);
     quad_reference_file.append("/quad_reference.csv");
-    opt_problem_data.quad_reference =  std::make_shared<QuadReference>();
-    opt_problem_data.quad_reference->load_top_level_data(quad_reference_file, true);     
-    
+    opt_problem_data.quad_reference = std::make_shared<QuadReference>();
+    opt_problem_data.quad_reference->load_top_level_data(quad_reference_file, true);
+
     // Initialize the multi-phase OCP (phase determination, memory allocation)
     opt_problem.set_problem_data(&opt_problem_data, &mpc_config);
     opt_problem.initialization();
 
 #ifdef DEBUG_MODE
     opt_problem.pretty_print();
-#endif    
+#endif
 
     mpc_time = 0;
-    mpc_time_prev = 0;    
-    
+    mpc_time_prev = 0;
+
     // Assemble the multi-phase probelm and solve it with MSDDP
     MultiPhaseDDP<T> solver;
     deque<shared_ptr<SinglePhaseBase<T>>> multiple_phases;
-    for (const auto& phase : opt_problem_data.wb_phases)
+    for (const auto &phase : opt_problem_data.wb_phases)
     {
         multiple_phases.push_back(phase);
     }
@@ -72,10 +71,10 @@ void MHPCLocomotion<T>::initialize()
     pos << 0, 0, 0.2486;
     eulrate.setZero();
     vWorld.setZero();
-    qJ = Vec3<T>(0, 0.8, -1.6).template replicate<4,1>();
-    qJd.setZero();   
+    qJ = Vec3<T>(0, 0.8, -1.6).template replicate<4, 1>();
+    qJd.setZero();
     x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
-    solver.set_initial_condition(x_init_wb);    
+    solver.set_initial_condition(x_init_wb);
 
 #ifdef TIME_BENCHMARK
     auto start = high_resolution_clock::now();
@@ -87,7 +86,7 @@ void MHPCLocomotion<T>::initialize()
     auto duration = duration_ms(stop - start);
     solve_time = duration.count();
 #endif
-   
+
     mpc_iter = 0;
 
     printf("MHPC solver is initialized successfully \n\n");
@@ -96,17 +95,17 @@ void MHPCLocomotion<T>::initialize()
 
 #ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data);
-#endif    
+#endif
 
-    // run-time DDP setting when re-solving DDP in MPC 
+    // run-time DDP setting when re-solving DDP in MPC
     ddp_setting.max_AL_iter = ddp_setting.max_AL_iter_runtime;
-    ddp_setting.max_DDP_iter = ddp_setting.max_DDP_iter_runtime;    
+    ddp_setting.max_DDP_iter = ddp_setting.max_DDP_iter_runtime;
 }
 
 template <typename T>
 void MHPCLocomotion<T>::update()
 {
-    mpc_mutex.lock(); // lock mpc to prevent updating while the previous hasn't finished    
+    mpc_mutex.lock(); // lock mpc to prevent updating while the previous hasn't finished
     mpc_iter++;
 
     printf("************************************* \n");
@@ -117,24 +116,24 @@ void MHPCLocomotion<T>::update()
     /* update the problem */
     opt_problem.update();
 
-#ifdef DEBUG_MODE    
+#ifdef DEBUG_MODE
     opt_problem.pretty_print();
 #endif
 
     /* update current state*/
-    Eigen::Map<VecM<float,3>> pos_map(mpc_data.pos);
-    Eigen::Map<VecM<float,3>> eul_map(mpc_data.eul);
-    Eigen::Map<VecM<float,12>> qJ_map(mpc_data.qJ);
-    Eigen::Map<VecM<float,3>> vWorld_map(mpc_data.vWorld);
-    Eigen::Map<VecM<float,3>> eulrate_map(mpc_data.eulrate);
-    Eigen::Map<VecM<float,12>> qJd_map(mpc_data.qJd);     
+    Eigen::Map<VecM<float, 3>> pos_map(mpc_data.pos);
+    Eigen::Map<VecM<float, 3>> eul_map(mpc_data.eul);
+    Eigen::Map<VecM<float, 12>> qJ_map(mpc_data.qJ);
+    Eigen::Map<VecM<float, 3>> vWorld_map(mpc_data.vWorld);
+    Eigen::Map<VecM<float, 3>> eulrate_map(mpc_data.eulrate);
+    Eigen::Map<VecM<float, 12>> qJd_map(mpc_data.qJd);
     x_init_wb << pos_map.cast<T>(), eul_map.cast<T>(), qJ_map.cast<T>(),
-                 vWorld_map.cast<T>(), eulrate_map.cast<T>(), qJd_map.cast<T>();
+        vWorld_map.cast<T>(), eulrate_map.cast<T>(), qJd_map.cast<T>();
 
     /* build solver and solve the TO problem */
     MultiPhaseDDP<T> solver;
     deque<shared_ptr<SinglePhaseBase<T>>> multiple_phases;
-    for (const auto& phase : opt_problem_data.wb_phases)
+    for (const auto &phase : opt_problem_data.wb_phases)
     {
         multiple_phases.push_back(phase);
     }
@@ -157,7 +156,7 @@ void MHPCLocomotion<T>::update()
 #endif
 
     publish_mpc_cmd();
-#ifdef DEBUG_MODE    
+#ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data);
 #endif
     mpc_mutex.unlock();
@@ -165,10 +164,10 @@ void MHPCLocomotion<T>::update()
 
 template <typename T>
 void MHPCLocomotion<T>::mpcdata_lcm_handler(const lcm::ReceiveBuffer *rbuf, const std::string &chan,
-                                          const MHPC_Data_lcmt *msg)
+                                            const MHPC_Data_lcmt *msg)
 {
-    (void) (rbuf);
-    (void) (chan);
+    (void)(rbuf);
+    (void)(chan);
     mpc_mutex.lock();
     printf(GRN);
     printf("Received resolving request\n");
@@ -186,70 +185,103 @@ void MHPCLocomotion<T>::mpcdata_lcm_handler(const lcm::ReceiveBuffer *rbuf, cons
     mpc_time_prev = mpc_time;
     mpc_time = mpc_data.mpctime;
 
-    
     mpc_mutex.unlock();
     std::thread solve_mpc_thread(&MHPCLocomotion::update, this);
     solve_mpc_thread.detach(); // detach the thread from the main thread. The thread would exit once it completes
 }
 
-
 template <typename T>
 void MHPCLocomotion<T>::publish_mpc_cmd()
 {
-    
+
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 4; // use 4 controls than control duration to account for delay
+    nControlSteps = 8; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
-    const auto& trajs = opt_problem_data.wb_trajs;
-    const auto& ctacts = opt_problem_data.wb_phase_contacts;    
-    const auto& statusDurations = opt_problem_data.wb_contact_durations;
-    
+    const auto &trajs = opt_problem_data.wb_trajs;
+    const auto &ctacts = opt_problem_data.wb_phase_contacts;
+    const auto &statusDurations = opt_problem_data.wb_contact_durations;
+
+    // Memory allocation
+    std::vector<float> torque_k_float(12);
+    std::vector<float> eul_k_float(3);
+    std::vector<float> pos_k_float(3);
+    std::vector<float> qJ_k_float(12);
+    std::vector<float> vWorld_k_float(3);
+    std::vector<float> eulrate_k_float(3);
+    std::vector<float> qJd_k_float(12);
+    std::vector<float> GRF_k_float(12);
+    std::vector<float> Qu_k_float(12);
+    std::vector<float> Quu_k_float(144);
+    std::vector<float> Qux_k_float(432);
+    std::vector<float> feedback_k_float(432);
+    std::vector<int> contact_k(4);
+    std::vector<float> statusDuration_k(4);
+
+    // Clear old data
+    mpc_cmd.pos.clear();
+    mpc_cmd.eul.clear();
+    mpc_cmd.qJ.clear();
+    mpc_cmd.vWorld.clear();
+    mpc_cmd.eulrate.clear();
+    mpc_cmd.qJd.clear();
+    mpc_cmd.torque.clear();
+    mpc_cmd.GRF.clear();
+    mpc_cmd.Qu.clear();
+    mpc_cmd.Quu.clear();
+    mpc_cmd.Qux.clear();
+    mpc_cmd.feedback.clear();
+    mpc_cmd.contacts.clear();
+    mpc_cmd.statusTimes.clear();
+    mpc_cmd.mpc_times.clear();
+
     int pidx(0), k_rel(0); // phase index and relative time instant w.r.t. each phase
     for (int k = 0; k < nControlSteps; k++)
-    {        
+    {
         opt_problem_data.get_index(k, pidx, k_rel);
 
-        const VecM<float, WBM::xs>& x_float = trajs[pidx]->Xbar[k_rel].template cast<float>();
-        const VecM<float, WBM::us>& u_float = trajs[pidx]->Ubar[k_rel].template cast<float>();
-        const VecM<float, WBM::ys>& GRF_float = trajs[pidx]->Y[k_rel].template cast<float>();
-        const MatMN<float, WBM::us, WBM::xs>& K_float = trajs[pidx]->K[k_rel].template cast<float>();
-        const VecM<float, WBM::us>& Qu_float = trajs[pidx]->Qu[k_rel].template cast<float>();
-        const MatMN<float, WBM::us, WBM::us>& Quu_float = trajs[pidx]->Quu[k_rel].template cast<float>();
-        const MatMN<float, WBM::us, WBM::xs>& Qux_float = trajs[pidx]->Qux[k_rel].template cast<float>();
+        const VecM<float,36>&x_k = trajs[pidx]->Xbar[k_rel].template cast<float>();
+        const Vec12<float>&u_k = trajs[pidx]->Ubar[k_rel].template cast<float>();
+        const Vec12<float>&GRF_k = trajs[pidx]->Y[k_rel].template cast<float>();
+        const Vec12<float>&Qu_k = trajs[pidx]->Qu[k_rel].template cast<float>();
+        const MatMN<float, 12, 12>&Quu_k = trajs[pidx]->Quu[k_rel].template cast<float>();
+        const MatMN<float, 12, 36>&Qux_k = trajs[pidx]->Qux[k_rel].template cast<float>();
+        const MatMN<float, 12, 36>&K_k = trajs[pidx]->K[k_rel].template cast<float>();
 
-        std::copy(x_float.begin(), x_float.begin()+3, mpc_cmd.pos[k]);
+        std::copy(u_k.begin(), u_k.end(), torque_k_float.data());
+        std::copy(x_k.begin(), x_k.begin() + 3, pos_k_float.data());
+        std::copy(x_k.begin() + 3, x_k.begin() + 6, eul_k_float.data());
+        std::copy(x_k.begin() + 6, x_k.begin() + 18, qJ_k_float.data());
+        std::copy(x_k.begin() + 18, x_k.begin() + 21, vWorld_k_float.data());
+        std::copy(x_k.begin() + 21, x_k.begin() + 24, eulrate_k_float.data());
+        std::copy(x_k.begin() + 24, x_k.end(), qJd_k_float.data());
+        std::copy(GRF_k.begin(), GRF_k.end(), GRF_k_float.data());
+        std::copy(Qu_k.begin(), Qu_k.end(), Qu_k_float.data());
 
-        std::copy(x_float.data()+3, x_float.data()+6, mpc_cmd.eul[k]);
+        std::copy(Quu_k.data(), Quu_k.data()+144, Quu_k_float.data());
+        std::copy(Qux_k.data(), Qux_k.data()+432, Qux_k_float.data());
+        std::copy(K_k.data(), K_k.data()+432, feedback_k_float.data());
+        std::copy(ctacts[pidx].begin(), ctacts[pidx].end(), contact_k.data());
+        std::copy(statusDurations[pidx].begin(), statusDurations[pidx].end(), statusDuration_k.data());
 
-        std::copy(x_float.data()+6, x_float.data()+18, mpc_cmd.qJ[k]);
-
-        std::copy(x_float.data()+18, x_float.data()+21, mpc_cmd.vWorld[k]);
-
-        std::copy(x_float.data()+21, x_float.data()+24, mpc_cmd.eulrate[k]);        
-
-        std::copy(x_float.data()+24, x_float.data()+36,mpc_cmd.qJd[k]);
-
-        std::copy(u_float.begin(), u_float.end(), mpc_cmd.torque[k]);     
-
-        std::copy(GRF_float.begin(), GRF_float.end(), mpc_cmd.GRF[k]);  
-
-        std::copy(Qu_float.begin(), Qu_float.end(), mpc_cmd.Qu[k]);
-
-        std::copy(Quu_float.data(), Quu_float.data()+144, mpc_cmd.Quu[k]);
-
-        std::copy(Qux_float.data(), Qux_float.data()+432, mpc_cmd.Qux[k]); 
-
-        std::copy(K_float.data(), K_float.data()+432, mpc_cmd.feedback[k]);
-
-        std::copy(ctacts[pidx].begin(), ctacts[pidx].end(), mpc_cmd.contacts[k]);
-
-        std::copy(statusDurations[pidx].begin(), statusDurations[pidx].end(), mpc_cmd.statusTimes[k]);
-
-        mpc_cmd.mpc_times[k] = mpc_time + k*mpc_config.dt_mpc;
-    }            
+        mpc_cmd.pos.push_back(pos_k_float);
+        mpc_cmd.eul.push_back(eul_k_float);
+        mpc_cmd.qJ.push_back(qJ_k_float);
+        mpc_cmd.vWorld.push_back(vWorld_k_float);
+        mpc_cmd.eulrate.push_back(eulrate_k_float);
+        mpc_cmd.qJd.push_back(qJd_k_float);
+        mpc_cmd.torque.push_back(torque_k_float);
+        mpc_cmd.GRF.push_back(GRF_k_float);
+        mpc_cmd.Qu.push_back(Qu_k_float);
+        mpc_cmd.Quu.push_back(Quu_k_float);
+        mpc_cmd.Qux.push_back(Qux_k_float);
+        mpc_cmd.feedback.push_back(feedback_k_float);
+        mpc_cmd.contacts.push_back(contact_k);
+        mpc_cmd.statusTimes.push_back(statusDuration_k);
+        mpc_cmd.mpc_times.push_back(mpc_time + k * mpc_config.dt_mpc);
+    }
     mpc_cmd.solve_time = solve_time;
     mpc_lcm.publish("MHPC_COMMAND", &mpc_cmd);
 
@@ -257,7 +289,5 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
     printf("published a mpc command message \n");
     printf(RESET);
 }
-
-
 
 template class MHPCLocomotion<double>;
