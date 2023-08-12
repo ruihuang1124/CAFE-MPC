@@ -69,22 +69,23 @@ int main()
     loadHSDDPSetting(fname_ddp_setting, ddp_setting);
     ddp_setting.print();
 
-    /* Solve the multi-phase problem */
+    /* Solve the initial multi-phase problem */
     solver.set_initial_condition(xinit);
     solver.set_multiPhaseProblem(multiple_phases);
     solver.solve(ddp_setting);
 
-    lcm::LCM visualize_traj_lcm;
-    if (!visualize_traj_lcm.good())
+    lcm::LCM viz_lcm;
+    if (!viz_lcm.good())
     {
         printf("Failed to initialize LCM \n");
     }
     visualize_quadState_lcmt state_visual_data;
     problem.pretty_print();
+
     /* Run in MPC Loop */
     int loop = 0;
-    ddp_setting.max_AL_iter = 2;
-    ddp_setting.max_DDP_iter = 1;
+    ddp_setting.max_AL_iter = ddp_setting.max_AL_iter_runtime;
+    ddp_setting.max_DDP_iter = ddp_setting.max_DDP_iter_runtime;
     while (loop <= 300)
     {
         loop++;
@@ -94,11 +95,11 @@ int main()
         std::copy(xinit.data() + 18, xinit.data() + 21, state_visual_data.vWorld);
         std::copy(xinit.data() + 21, xinit.data() + 24, state_visual_data.eulrate);
         std::copy(xinit.data() + 24, xinit.data() + 36, state_visual_data.qJd);
-        visualize_traj_lcm.publish("visualize_mc_state", &state_visual_data);
+        viz_lcm.publish("visualize_mc_state", &state_visual_data);
         usleep(1e6 * config.dt_mpc * 5.0);
 
         problem.update();
-        problem.pretty_print();
+        // problem.pretty_print();
         multiple_phases.clear();
         for (auto phase : pdata.wb_phases)
         {
@@ -108,14 +109,7 @@ int main()
         {
             multiple_phases.push_back(pdata.srb_phase);
         }
-        // if(pdata.wb_trajs.front()->size()>=3)
-        // {
-        //     xinit = pdata.wb_trajs.front()->Xbar[2];
-        // }else
-        // {
-        //     xinit = pdata.wb_trajs[1]->Xbar[0];
-        // }
-        
+       
         xinit = pdata.wb_trajs.front()->Xbar[0];                
         solver.set_initial_condition(xinit);
         solver.set_multiPhaseProblem(multiple_phases);

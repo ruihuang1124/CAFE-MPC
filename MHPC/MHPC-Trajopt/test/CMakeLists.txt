@@ -74,7 +74,7 @@ target_link_libraries(testMHPCProblem PUBLIC hsddp pinocchio::pinocchio casadige
 
 # Test of MHPCProblem2
 file(GLOB sources ../*.cpp)
-add_executable(testMHPCProblem2 testMHPCProblem2.cpp ${sources}
+add_executable(testTrajOptInLoop testTrajOptInLoop.cpp ${sources}
                 ../../../Reference/QuadReference.cpp)
-target_link_libraries(testMHPCProblem2 PUBLIC hsddp pinocchio::pinocchio casadigen_mhpc)                
+target_link_libraries(testTrajOptInLoop PUBLIC hsddp pinocchio::pinocchio casadigen_mhpc)                
 
