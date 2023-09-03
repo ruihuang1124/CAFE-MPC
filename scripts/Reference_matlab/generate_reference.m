@@ -1,8 +1,5 @@
 addpath("PreProcessedData");
 addpath("PostProcessedData/");
-
-% load("Inplace-trot.mat");
-
 %%
 tau_sz = size(body_states, 1);
 status_durations = zeros(tau_sz, 4);

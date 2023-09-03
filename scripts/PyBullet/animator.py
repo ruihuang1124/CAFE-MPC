@@ -54,13 +54,13 @@ class Animator:
 
     def render(self):        
         while True:
-            self.pb.configureDebugVisualizer(self.pb.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+            self.pb.configureDebugVisualizer(self.pb.COV_ENABLE_RENDERING,1)
             time.sleep(0.01)
 
     def update_camera(self):
         base_pos = np.array(self.pb.getBasePositionAndOrientation(self.robotID)[0])
         [yaw, pitch, dist] = self.pb.getDebugVisualizerCamera()[8:11]
-        self.pb.resetDebugVisualizerCamera(dist, yaw, pitch, base_pos)        
+        self.pb.resetDebugVisualizerCamera(3, 30.0, 52.0, base_pos)        
         
     
     def show_config(self, root_pos, root_quat, jnt_pose):
