@@ -10,10 +10,6 @@ import utils
 import numpy as np
 from mini_cheetah_pybullet import MiniCheetah
 
-DEFAULT_JNT_ANGLES = [np.array([0, -0.7, 1.4]),
-                      np.array([0, -0.7, 1.4]),
-                      np.array([0, -0.7, 1.4]),
-                      np.array([0, -0.7, 1.4])]
 
 @dataclass
 class QuadState:
@@ -30,13 +26,13 @@ xinit, yinit, zinit = 0.0, 0.0, 0.28
 vx_des, vy_des, z_des = 0.5, 0.0, 0.28
 swingHeight = 0.1
 
-planning_horizon = 10.0
+planning_horizon = 5.0
 transition_time = 2.5
 dt = 0.01
 N = round(planning_horizon/dt) + 1
 
 # Desired Gait
-periodicGait = Bound
+periodicGait = Trot
 
 # Setup the planners
 reference_planner = ReferenceManager()
@@ -73,6 +69,7 @@ for k in range(N):
         else:
             pf.append(reference_planner.getFootholdLocationAtTime(l, t))
             vf.append(np.array([0,0,0]))
+        z[l] = pf[l][2]
     eul = np.array([0,0,0])
     jnt_pos = robot.ik(pos, eul, np.hstack(pf))
     pos_tau.append(pos)
@@ -81,12 +78,13 @@ for k in range(N):
     eulrate_tau.append(np.array([0,0,0]))
     contact_tau.append(contact)
     pf_tau.append(np.hstack(pf))
+    z_tau.append(z)
     vf_tau.append(np.hstack(vf))
     jnt_tau.append(jnt_pos)
     time.append(t)
 
-utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
-# utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
+# utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
+utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
 
 # utils.plot_com_pos(time, pos_tau)
 # utils.plot_com_vel(time, vel_tau)
