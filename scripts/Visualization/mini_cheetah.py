@@ -10,20 +10,21 @@ class MiniCheetah:
     DEFAULT_JOINT_POSE = [0, 0.8, -1.6, 
                         0, 0.8, -1.6, 
                         0, 0.8, -1.6, 
-                        0, 0.8, -1.6]        
+                        0, 0.8, -1.6]    # for  mini_cheetah_simple_correctedInertia.urdf 
+                                         # rotation direction for hip and knee needs to be flipped for mini_cheetah/mini_cheetah.urdf in pybullet_data
     INIT_POS = [0,0,0.25]
     INIT_QUAT = [0,0,0,1]
-    EE_ID = [3, 7, 11, 15] # FL, FR, HL, HR
+    EE_ID = [3, 7, 11, 15] # FL, FR, HL, HR for mini_cheetah_simple_correctedInertia.urdf 
+                           # FR, FL, HR, HL for default mini_cheetah/mini_cheetah.urdf in pybullet_data
     JOINT_DAMPING = [0.1, 0.05, 0.01,
                      0.1, 0.05, 0.01,
                      0.1, 0.05, 0.01,
                      0.1, 0.05, 0.01]  
-    def __init__(self, urdf_file=None):        
-        # damping used by numerical IK solver
+    def __init__(self, urdf_file=None):                
         self.pb = BulletClient(pybullet.DIRECT)
         self.pb.setAdditionalSearchPath(pd.getDataPath())        
         if urdf_file==None:
-            self.urdf_file = 'mini_cheetah/mini_cheetah.urdf'
+            self.urdf_file = 'mini_cheetah/mini_cheetah.urdf' # urdf file stored in pybullet_data
         else:
             self.urdf_file = urdf_file
         self.robot = self.pb.loadURDF(self.urdf_file)

@@ -1,11 +1,12 @@
 
+
 import time
 from turtle import pd
 import numpy as np
 
 
-from scripts.PyBullet.mini_cheetah import MiniCheetah
-from scripts.PyBullet.animator import Animator
+from scripts.Visualization.mini_cheetah import MiniCheetah
+from scripts.Visualization.animator import Animator
 
 import lcm
 from lcmtypes.python.visualize_quadState_lcmt import visualize_quadState_lcmt
@@ -13,10 +14,11 @@ from lcmtypes.python.visualize_quadTraj_lcmt import visualize_quadTraj_lcmt
 from lcmtypes.python.MHPC_Command_lcmt import MHPC_Command_lcmt
 import threading
 
-urdf_filename =  "urdf/mini_cheetah_simple_correctedInertia.urdf"
-robot = MiniCheetah(urdf_file=urdf_filename)    
+# urdf_filename =  "urdf/mini_cheetah_simple_correctedInertia.urdf"
+robot = MiniCheetah()    
 animator = Animator(robot)
 animator.initialization()
+
 
 def MHPC_COMMAND_lcm_handler(channel, data):
     print("received MHPC Command")

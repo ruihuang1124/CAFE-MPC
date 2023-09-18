@@ -4,19 +4,19 @@ from turtle import pd
 import numpy as np
 
 
-from scripts.PyBullet.mini_cheetah import MiniCheetah
-from scripts.PyBullet.animator import Animator
+from scripts.Visualization.mini_cheetah import MiniCheetah
+from scripts.Visualization.animator import Animator
 
 import lcm
 from lcmtypes.python.wbTraj_lcmt import wbTraj_lcmt
 import threading
 
 urdf_filename =  "urdf/mini_cheetah_simple_correctedInertia.urdf"
-robot = MiniCheetah(urdf_file=urdf_filename)    
+robot = MiniCheetah(urdf_filename)    
 animator = Animator(robot)
 animator.initialization()
 
- 
+
 def visualize_motion_lcm_handler(channel, data):
     print("received visualization lcm message")    
     msg = wbTraj_lcmt.decode(data)
