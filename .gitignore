@@ -8,6 +8,6 @@ lcmtypes/file_list.txt
 lcmtypes/cpp/*
 lcmtypes/lcmtypes/*
 lcmtypes/python/*
-scripts/PyBullet/__pycache__
+**/__pycache__
 
 
