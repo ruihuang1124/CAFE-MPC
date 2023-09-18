@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from statistics import mode
 import numpy as np
 import quad_mode_definition as quad_mode
-from quad_mode_definition import QUAD_MODES
 from utils import (approx__leq, approx_geq)
 
 @dataclass()

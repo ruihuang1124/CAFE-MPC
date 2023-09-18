@@ -2,6 +2,7 @@ import numpy as np
 from gait_schedule import GaitSchedule
 from body_trajectory_plan import CoMTrajectoryPlanner
 
+# Default foothold locations w.r.t. the CoM
 DEFAULT_FOOTHOLDS = [np.array([0.22, -0.10, 0.]), 
                      np.array([0.22, 0.10, 0.]),
                      np.array([-0.18, -0.10, 0.]), 
@@ -30,12 +31,12 @@ class FootholdPlanner:
             numLegModes = len(legContactStatus[l])
             self.pf_[l] = [DEFAULT_FOOTHOLDS[l].copy() for _ in range(numLegModes)]
 
+            # For swing leg, foothold location is determined by the end of swing
             for i in range(1, numLegModes):
                 legContact = legContactStatus[l][i]
                 if legContact == 0:                    
                     touchDownTime = legSwitchingTimes[l][i+1]
-                    # Default stance time
-                    stancePeriod = 0.2
+                    stancePeriod = 0.2 # Default stance time
                     if i < numLegModes - 2:
                         stancePeriod = legSwitchingTimes[l][i+2] - touchDownTime
 
@@ -53,7 +54,7 @@ class FootholdPlanner:
                     self.pf_[l][i] = np.array([pf_x, pf_y, 0.0])
                      
 
-            # Foothold of contact leg is determined by previous swing phase
+            # For stance leg, foothold location is determined by the end of the previous swing phase
             for i in range(1, numLegModes):
                 legContact = legContactStatus[l][i]
                 if legContact == 1:

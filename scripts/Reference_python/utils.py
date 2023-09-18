@@ -13,6 +13,7 @@ def approx_geq(a, b):
         return True
     return False
 
+from cgi import print_arguments
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,6 +53,21 @@ def plot_com_pos(time, pos_tau):
     axs[2].plot(time, [p[2] for p in pos_tau])
     axs[2].set_xlabel('time (s)')
     axs[2].set_ylabel('z (m)')
+    plt.show()
+
+def plot_eul(time, eul_tau):
+    _, axs = plt.subplots(1, 3)    
+    axs[0].plot(time, [eul[0] for eul in eul_tau])
+    axs[0].set_xlabel('time (s)')
+    axs[0].set_ylabel('yaw (m)')
+
+    axs[1].plot(time, [eul[1] for eul in eul_tau])
+    axs[1].set_xlabel('time (s)')
+    axs[1].set_ylabel('pitch (m)')
+
+    axs[2].plot(time, [eul[2] for eul in eul_tau])
+    axs[2].set_xlabel('time (s)')
+    axs[2].set_ylabel('roll (m)')
     plt.show()
 
 def plot_com_vel(time, vel_tau):
@@ -149,8 +165,38 @@ def animate_footPositions_and_CoM(leg, pf_tau, p_tau):
     ani = animation.FuncAnimation(fig=fig, func=update, frames=len(pf_x_array), interval=100)
     plt.show()
 
+def flip_hip_knee_direction(jnt_pos):
+    jnt_pos[np.array([2,5,8,11])] *= -1.0
+    jnt_pos[np.array([1,4,7,10])] *= -1.0 
+    return jnt_pos
+
+def flip_left_and_right(vec12):
+    vec12_flipped = vec12.copy()
+    vec12_flipped[np.array([0,1,2])] = vec12[np.array([3,4,5])]
+    vec12_flipped[np.array([3,4,5])] = vec12[np.array([0,1,2])]
+    vec12_flipped[np.array([6,7,8])] = vec12[np.array([9,10,11])]
+    vec12_flipped[np.array([9,10,11])] = vec12[np.array([6,7,8])]
+    return vec12_flipped
+
+def rearrange_traj_for_viz(wbtraj_lcmt):
+    for k in range(wbtraj_lcmt.sz):                
+        qJ = flip_hip_knee_direction(np.array(wbtraj_lcmt.qJ[k]))                
+        wbtraj_lcmt.qJ[k] = list(flip_left_and_right(qJ))        
+
 def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, c):
     base = np.hstack((eul, pos, eulrate, vel))   
+    
+    for k in range(len(jnt)):
+        jnt_k = jnt[k]
+        jnt_k = flip_hip_knee_direction(jnt_k)
+        jnt_k = flip_left_and_right(jnt_k)
+
+        pf_k = flip_left_and_right(pf[k])
+        vf_k = flip_left_and_right(vf[k])
+
+        jnt[k] = jnt_k
+        pf[k] = pf_k
+        vf[k] = vf_k
     
     np.savetxt("data/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
     np.savetxt("data/body_state.csv", base, delimiter=",", fmt='%8.4f')
@@ -173,9 +219,6 @@ def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau):
         wbtraj_lcmt.qJd.append([0]*12)
         wbtraj_lcmt.torque.append([0]*12)
     
-    lcm_.publish("visualize_wb_traj", wbtraj_lcmt.encode())
+    rearrange_traj_for_viz(wbtraj_lcmt)
 
-def flip_hip_knee_direction(jnt_pos):
-    jnt_pos[np.array([2,5,8,11])] *= -1.0
-    jnt_pos[np.array([1,4,7,10])] *= -1.0 
-    return jnt_pos
+    lcm_.publish("visualize_wb_traj", wbtraj_lcmt.encode())
