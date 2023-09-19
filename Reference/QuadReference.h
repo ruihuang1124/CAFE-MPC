@@ -202,7 +202,8 @@ public:
     float get_end_time() { return data.end_time; } // End time of the reference relative to the long-horizon top-level reference data
 
 private:
-    void reorder_states();
+    void reorder_body_states();
+    void reorder_leg_dependent_states();    
 };
 
 

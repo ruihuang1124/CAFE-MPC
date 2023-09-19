@@ -313,15 +313,16 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
     printf("Loaded trajectory size = %ld \n\n", tp_data.size());
 
     /* Reorder the reference state if needed (used for MHPC)*/
+    reorder_body_states();
     if (reorder)
     {
-        reorder_states();
+        reorder_leg_dependent_states();
 
     }
    
 }
 
-void QuadReference::reorder_states()
+void QuadReference::reorder_body_states()
 {
     QuadAugmentedState state_reordered;
     for (size_t i(0); i < tp_data.size(); ++i)
@@ -332,6 +333,17 @@ void QuadReference::reorder_states()
         state_reordered.body_state << state_org.body_state.segment<3>(3), state_org.body_state.head<3>(),
                                       state_org.body_state.tail<3>(), state_org.body_state.segment<3>(6);                
         
+        tp_data[i].body_state = state_reordered.body_state;
+    }
+}
+
+void QuadReference::reorder_leg_dependent_states()
+{
+    QuadAugmentedState state_reordered;
+    for (size_t i(0); i < tp_data.size(); ++i)
+    {   
+        const QuadAugmentedState& state_org = tp_data[i];
+
         /* flip the right and left legs */
         state_reordered.qJ << state_org.qJ.segment<3>(3), state_org.qJ.head<3>(), state_org.qJ.tail<3>(), state_org.qJ.segment<3>(6);       
 
@@ -355,7 +367,14 @@ void QuadReference::reorder_states()
         state_reordered.torque(Eigen::seqN(1,4,3)) = -state_reordered.torque(Eigen::seqN(1,4,3)); 
         state_reordered.torque(Eigen::seqN(2,4,3)) = -state_reordered.torque(Eigen::seqN(2,4,3)); 
 
-        tp_data[i] = state_reordered;
+        tp_data[i].qJ = state_reordered.qJ;
+        tp_data[i].qJd = state_reordered.qJd;
+        tp_data[i].foot_placements = state_reordered.foot_placements;
+        tp_data[i].foot_velocities = state_reordered.foot_velocities;
+        tp_data[i].grf = state_reordered.grf;
+        tp_data[i].torque = state_reordered.torque;
+        tp_data[i].contact = state_reordered.contact;
+        tp_data[i].status_dur = state_reordered.status_dur;
     }
     
 }
