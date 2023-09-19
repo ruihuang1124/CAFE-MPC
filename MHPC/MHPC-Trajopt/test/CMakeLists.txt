@@ -78,3 +78,8 @@ add_executable(testTrajOptInLoop testTrajOptInLoop.cpp ${sources}
                 ../../../Reference/QuadReference.cpp)
 target_link_libraries(testTrajOptInLoop PUBLIC hsddp pinocchio::pinocchio casadigen_mhpc)                
 
+# Test of trajectory optimization
+file(GLOB sources ../*.cpp)
+add_executable(testBarrelRollTO testBarrelRollTO.cpp ${sources}
+                ../../../Reference/QuadReference.cpp)
+target_link_libraries(testBarrelRollTO PUBLIC hsddp pinocchio::pinocchio casadigen_mhpc)  
