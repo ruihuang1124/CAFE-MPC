@@ -7,16 +7,15 @@ from barrel_roll import BarrelRoll
 # Create a pybullet model for ik computation
 robot = MiniCheetah()
 
-EE_pos = robot.fk(np.zeros(3), np.zeros(3), 0, np.array([0.0, -1.2, 2.4]))
-print(EE_pos)
-
 zd_stand = .1464
 zd_air = 0.35
+pCoM_landing = np.array([0.0, -0.2, zd_stand])
 
 barrel_planner = BarrelRoll()
 barrel_planner.buildSchedule()
 barrel_planner.setStandingHeight(zd_stand)
 barrel_planner.setBarrelRollHeight(zd_air)
+barrel_planner.setCoMLandingPosition(pCoM_landing)
 
 dt = 0.01
 plan_horizon = barrel_planner.getOverallDuration()
@@ -51,8 +50,8 @@ for k in range(N):
     jnt_tau.append(jnt_pos)
     time.append(t)
 
-# utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
-utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
+utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
+# utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
 
 # utils.plot_com_pos(time, pos_tau)
 # utils.plot_com_vel(time, vel_tau)
@@ -62,6 +61,6 @@ utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
 # utils.plot_footPosition_and_CoM(pf_tau, pos_tau)
 # utils.animate_footPositions_and_CoM(0, pf_tau, pos_tau)
 # utils.plot_jnt_position(time, jnt_tau, 0)
-# utils.plot_eul(time, eul_tau)
+utils.plot_eul(time, eul_tau)
 
 

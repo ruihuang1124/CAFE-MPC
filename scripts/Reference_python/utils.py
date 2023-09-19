@@ -59,15 +59,15 @@ def plot_eul(time, eul_tau):
     _, axs = plt.subplots(1, 3)    
     axs[0].plot(time, [eul[0] for eul in eul_tau])
     axs[0].set_xlabel('time (s)')
-    axs[0].set_ylabel('yaw (m)')
+    axs[0].set_ylabel('yaw (rad)')
 
     axs[1].plot(time, [eul[1] for eul in eul_tau])
     axs[1].set_xlabel('time (s)')
-    axs[1].set_ylabel('pitch (m)')
+    axs[1].set_ylabel('pitch (rad)')
 
     axs[2].plot(time, [eul[2] for eul in eul_tau])
     axs[2].set_xlabel('time (s)')
-    axs[2].set_ylabel('roll (m)')
+    axs[2].set_ylabel('roll (rad)')
     plt.show()
 
 def plot_com_vel(time, vel_tau):
@@ -183,9 +183,10 @@ def rearrange_traj_for_viz(wbtraj_lcmt):
         qJ = flip_hip_knee_direction(np.array(wbtraj_lcmt.qJ[k]))                
         wbtraj_lcmt.qJ[k] = list(flip_left_and_right(qJ))        
 
-def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, c):
+def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact):
     base = np.hstack((eul, pos, eulrate, vel))   
     
+    # Rearrange leg order and reverse rotation for urdf file used in MPC
     for k in range(len(jnt)):
         jnt_k = jnt[k]
         jnt_k = flip_hip_knee_direction(jnt_k)
@@ -194,15 +195,22 @@ def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, c):
         pf_k = flip_left_and_right(pf[k])
         vf_k = flip_left_and_right(vf[k])
 
+        c_k = contact[k].copy()
+        c_k[0] = contact[k][1]
+        c_k[1] = contact[k][0]
+        c_k[2] = contact[k][3]
+        c_k[3] = contact[k][2]
+
         jnt[k] = jnt_k
         pf[k] = pf_k
         vf[k] = vf_k
+        contact[k] = c_k
     
     np.savetxt("data/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
     np.savetxt("data/body_state.csv", base, delimiter=",", fmt='%8.4f')
     np.savetxt("data/ee_pos.csv", np.asarray(pf), delimiter=",", fmt='%8.4f')
     np.savetxt("data/jnt.csv", np.asarray(jnt), delimiter=",", fmt='%8.4f')
-    np.savetxt("data/contact.csv", np.asarray(c), delimiter=",", fmt='%u')
+    np.savetxt("data/contact.csv", np.asarray(contact), delimiter=",", fmt='%u')
     np.savetxt("data/ee_vel.csv", np.asarray(vf), delimiter=",", fmt='%8.4f')
 
 def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau):

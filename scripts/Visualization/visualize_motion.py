@@ -68,7 +68,7 @@ def visualize_motion_lcm_handler(channel, data):
     torque = np.asarray([np.array(torque_k) for torque_k in msg.torque])        
     GRF = np.asarray([np.array(GRF_k) for GRF_k in msg.grf])    
 
-    # animator.plot_eul(t, eul)
+    animator.plot_eul(t, eul)
     # animator.plot_pos(t, pos)
     # animator.plot_joint_torques(t, torque)
     # animator.plot_GRF(t, GRF)

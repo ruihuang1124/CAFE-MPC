@@ -5,6 +5,7 @@ import math
 import quad_mode_definition as quad_mode
 from gait_schedule import ModeSchedule
 from foothold_plan import DEFAULT_FOOTHOLDS
+from interpolation import lerp
 
 # from mini_cheetah_pybullet import DEFAULT_JOINT_POSE
 from mini_cheetah_pybullet import MiniCheetah
@@ -20,7 +21,7 @@ DEFAULT_JOINT_POSE = [np.array([0, -1.2, 2.4]),
 class BarrelRollGait:
     modeSeqStr = ["Stance", "FL-HL", "Fly", "Stance"] # The first stance is when the left legs start pushing off the ground
     modeSequence = quad_mode.stringSeq2modeNumSeq(modeSeqStr)
-    switchingTimes = np.array([0.0, 0.05, 0.1, 0.50, 1.0])
+    switchingTimes = np.array([0.0, 0.05, 0.1, 0.50, 2.0])
 
 class BarrelRoll:
     def __init__(self) -> None:
@@ -33,6 +34,7 @@ class BarrelRoll:
         self.barrel_dur_ = self.t_barrel_end_ - self.t_barrel_start_
         self.zd_stand_ = 0.0 
         self.zd_barrel_ = 0.0
+        self.pCoM_landing_ = np.array([0, 0, self.zd_stand_])
 
         self.robot_ = MiniCheetah()
 
@@ -48,17 +50,21 @@ class BarrelRoll:
     
     def setBarrelRollHeight(self, zd):
         self.zd_barrel_ = zd
+    
+    def setCoMLandingPosition(self, pCoM_landing):
+        self.pCoM_landing_ = pCoM_landing
 
     def getOverallDuration(self):
-        return self.switchingTimes_[-2]
+        return self.switchingTimes_[-1]
 
     def getCoMPosition(self, t):
-        pCoM = np.array([0.0, 0.0, 0.0])
-
         # update z position
-        pCoM[2] = self.getZPosition_(t)
+        p_z = self.getZPosition_(t)
 
-        # To Do: update x and y position
+        # update x and y position
+        p_xy = self.getXYPositions_(t)
+
+        pCoM = np.hstack((p_xy, p_z))
         return pCoM
 
     def getCoMVelocity(self, t):
@@ -79,17 +85,20 @@ class BarrelRoll:
         roll_rate = 0.0
         return np.array([yaw_rate, pitch_rate, roll_rate])
     
-
-    def getFootPosition(self, leg, time):
-        contactFlags = self.getContactFlagsAtTime(time)
-        pCoM = self.getCoMPosition(time)
-        if contactFlags[leg]:            
+    def getFootPosition(self, leg, time):        
+        pCoM = self.getCoMPosition(min(time, self.t_barrel_end_))
+        if time <= self.t_barrel_end_:
+            contactFlags = self.getContactFlagsAtTime(time)
+            if contactFlags[leg]:            
+                pf = pCoM + DEFAULT_FOOTHOLDS[leg]
+                pf[2] = 0.0
+            else:
+                eul = self.getEulerAngle(time)
+                qleg = DEFAULT_JOINT_POSE[leg]
+                pf = self.robot_.fk(pCoM, eul, leg, qleg)
+        else:
             pf = pCoM + DEFAULT_FOOTHOLDS[leg]
             pf[2] = 0.0
-        else:
-            eul = self.getEulerAngle(time)
-            qleg = DEFAULT_JOINT_POSE[leg]
-            pf = self.robot_.fk(pCoM, eul, leg, qleg)
         return pf    
     
     def getFootVelocity(self, leg, time):
@@ -105,6 +114,7 @@ class BarrelRoll:
 
     def getRollAngle_(self, t):
         # Linearly interpolates roll flip
+        t = min(t, self.t_barrel_end_)
         roll_t = (t - self.t_barrel_start_)/(self.barrel_dur_) * 2.0 * math.pi     
         return roll_t
     
@@ -119,6 +129,13 @@ class BarrelRoll:
         else:
             zt = self.zd_stand_
         return zt
+    
+    def getXYPositions_(self, t):        
+        t_span = self.barrel_dur_
+        t_rel = min(t, self.t_barrel_end_) - self.t_barrel_start_
+        x = lerp(0.0, self.pCoM_landing_[0], t_rel/t_span)
+        y = lerp(0.0, self.pCoM_landing_[1], t_rel/t_span)
+        return np.array([x,y])
     
     def buildLegContactSchedule_(self):
         # Initialize schedule of each indepedent leg

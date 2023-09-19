@@ -23,7 +23,8 @@ def visualize_motion_lcm_handler(channel, data):
 
     print("Size of the received trajectory: ", msg.sz)    
     
-
+    t = np.arange(msg.sz) * 0.01
+    animator.plot_eul(t, np.array(msg.eul))
     for k in range(msg.sz):
         eul_k = np.array(msg.eul[k])
         rpy_k = eul_k[[2,1,0]]
