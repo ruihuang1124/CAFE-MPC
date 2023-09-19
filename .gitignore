@@ -9,6 +9,6 @@ lcmtypes/cpp/*
 lcmtypes/lcmtypes/*
 lcmtypes/python/*
 **/__pycache__
-**/*.csv
+*.csv
 
 
