@@ -52,6 +52,8 @@ public:
 
     virtual void terminal_cost_par(TCost&, const State&x, float tend) = 0;
 
+    virtual void update_weighting_matrix(std::vector<T>& weights) {}
+
 public:
     std::string cost_name;    
 };
@@ -93,6 +95,8 @@ public:
     virtual void terminal_cost(TCost&, const State& x, float tend = 0) override;
 
     virtual void terminal_cost_par(TCost&, const State&x, float tend = 0) override;
+
+    virtual void update_weighting_matrix(std::vector<T>& weights) override;
 
 protected:
     MatMN<T, xs_, xs_> Q;
@@ -136,6 +140,18 @@ public:
     virtual void terminal_cost_par(TCost&, const State&x, float tend = 0) override;
 
     void set_reference(SinglePhaseReferenceAbstract<xs_, us_, ys_>* reference_in) {reference = reference_in;}
+
+    template<class Derived1, class Derived2>
+    void set_reference_state(const Eigen::MatrixBase<Derived1>& xr, 
+                             const Eigen::MatrixBase<Derived2>& ur){
+
+        assert((xr_t.rows() == xr.rows()));
+        assert((xr_t.cols() == xr.cols()));
+        assert((ur_t.rows() == ur.rows()));
+        assert((ur_t.rows() == ur.rows()));
+        xr_t = xr.template cast<T>();
+        ur_t = ur.template cast<T>();
+    }
 
 private:
     SinglePhaseReferenceAbstract<xs_, us_, ys_>* reference = nullptr;
