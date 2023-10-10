@@ -68,7 +68,11 @@ namespace WBM
 
         void dynamics_partial_continuousTime(StateMapType &Ac, ContrlMapType &Bc, OutputMapType &C, DirectMapType &D,
                               StateType &x, ContrlType &u,
-                              CtactStatusType &contact);                              
+                              CtactStatusType &contact);      
+
+        DVec<T> evalute_centroidal_momemtum(const StateType &x);
+
+        DVec<T> evalute_centroidal_momemtum_timederivative(const StateType &x, const ContrlType& u, const CtactStatusType &contact);                                                    
 
         void impact(DVec<T> &xnext, DVec<T> &y, const DVec<T> &x,
                     const CtactStatusType &contact_cur,

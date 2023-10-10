@@ -7,7 +7,8 @@
 #include "pinocchio/algorithm/frames.hpp"
 #include "pinocchio/algorithm/aba.hpp"
 #include "pinocchio/algorithm/rnea.hpp"
-
+#include "pinocchio/algorithm/centroidal.hpp"
+#include "pinocchio/algorithm/centroidal-derivatives.hpp"
 
 /*
     @brief: discrete-time dynamics
@@ -22,7 +23,12 @@ void WBM::Model<T>::dynamics(StateType &xnext, OutputType &y,
 
     // Update next state with Forward Euler
     xnext.template head<nq>() = q + v * dt;
-    xnext.template tail<nv>() = v + qdd * dt;   
+    xnext.template tail<nv>() = v + qdd * dt; 
+
+    // // Update next state with Symplectic Euler    
+    // xnext.template tail<nv>() = v + qdd * dt; 
+    // const auto& vnext = xnext.template tail<nv>();
+    // xnext.template head<nq>() = q + vnext * dt;  
 }
 
 /*
@@ -57,11 +63,44 @@ void WBM::Model<T>::dynamics_partial(StateMapType &A, ContrlMapType &B, OutputMa
 {
     (void)(t);
 
-    dynamics_partial_continuousTime(Ac_, B, C, D, x, u, contact);
-
     // Forward Euler
+    dynamics_partial_continuousTime(Ac_, B, C, D, x, u, contact);    
     A = Ac_ * dt + StateMapType::Identity();    
     B *= dt;
+
+    // // Symplectic Euler
+    // // Update q, v
+    // q << x.template head<nq>(); // x,y,z, yaw, pitch roll, joint angles
+    // v << x.template tail<nv>();
+    // tau = SelectionMat * u;
+
+    // // Update contacts
+    // updateContactFrameIds(contact);
+
+    // // Compute partials
+    // KKTContactDynamicsDerivatives();
+
+    // MatMN<T,nv, nq> dqd_dq;
+    // MatMN<T,nv, nv> dqd_dv;
+    // dqd_dq = dqdd_dq * dt;
+    // dqd_dv = MatMN<T,nv, nv>::Identity() + dqdd_dv * dt;
+    // A.template bottomLeftCorner<nv, nq>() = dqd_dq;
+    // A.template bottomRightCorner<nv, nv>() = dqd_dv;
+    // A.template topLeftCorner<nq, nq>() = MatMN<T, nq, nq>::Identity() + dqd_dq*dt;
+    // A.template topRightCorner<nq, nv>() = dqd_dv * dt;
+
+    // B.template topRows<nq>() = dqdd_dtau * SelectionMat * dt * dt;
+    // B.template bottomRows<nv>() = dqdd_dtau * SelectionMat * dt;
+
+    // C.setZero();
+    // D.setZero();
+    // const auto dGRF_du = dGRF_dtau * SelectionMat;
+    // for (size_t i = 0; i < N_contacts; i++)
+    // {
+    //     C.template block<3, nv>(3 * contactFootIds_cur[i], 0) = dGRF_dq.block(3 * i, 0, 3, nv);
+    //     C.template block<3, nv>(3 * contactFootIds_cur[i], nv) = dGRF_dv.block(3 * i, 0, 3, nv);
+    //     D.template block<3, nu>(3 * contactFootIds_cur[i], 0) = dGRF_du.block(3 * i, 0, 3, nu);
+    // }
 
 }
 
@@ -97,6 +136,30 @@ void WBM::Model<T>::dynamics_partial_continuousTime(StateMapType &Ac, ContrlMapT
         C.template block<3, nv>(3 * contactFootIds_cur[i], nv) = dGRF_dv.block(3 * i, 0, 3, nv);
         D.template block<3, nu>(3 * contactFootIds_cur[i], 0) = dGRF_du.block(3 * i, 0, 3, nu);
     }
+}
+
+template <typename T>
+DVec<T> WBM::Model<T>::evalute_centroidal_momemtum(const StateType &x)
+{
+    q << x.template head<nq>(); // x,y,z, yaw, pitch roll, joint angles
+    v << x.template tail<nv>();
+
+    pinocchio::computeCentroidalMomentum(pin_model, pin_data, q, v);
+
+    return pin_data.hg.angular();
+}
+
+template <typename T>
+DVec<T> WBM::Model<T>::evalute_centroidal_momemtum_timederivative(const StateType &x, const ContrlType& u, const CtactStatusType &contact)
+{
+    q << x.template head<nq>(); // x,y,z, yaw, pitch roll, joint angles
+    v << x.template tail<nv>();
+    tau = SelectionMat*u;
+    updateContactFrameIds(contact);
+    KKTContactDynamics();
+    pinocchio::computeCentroidalMomentumTimeVariation(pin_model, pin_data, q, v, qdd);
+
+    return pin_data.dhg.angular();
 }
 
 template <typename T>
