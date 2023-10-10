@@ -159,8 +159,14 @@ public:
     void compute_defect() {traj->compute_defect();}
 
     void update_SS_config(int ss_sz) override {
-        SS_set.resize(ss_sz);        
-        std::iota(SS_set.begin(), SS_set.end(), 0);
+        if (ss_sz > 0)
+        {
+            SS_set.resize(ss_sz);        
+            std::iota(SS_set.begin(), SS_set.end(), 0);
+        }else
+        {
+            SS_set.clear();
+        }                
         }
 
     void get_trajectory(std::vector< std::vector<float>> & x_tau, 
