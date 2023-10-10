@@ -70,6 +70,11 @@ bool MultiPhaseDDP<T>::hybrid_rollout(T eps, HSDDP_OPTION &option)
 
     for (int i = 0; i < n_phases; i++)
     {
+        if (!option.MS)
+        {
+            phases[i]->update_SS_config(0);
+        }
+        
         if (i > 0)
         {
             // If not the first phase, run resetmap at the end of previous phase
@@ -298,8 +303,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
         stop = high_resolution_clock::now();
         duration = duration_ms(stop - start);
         time_partial = duration.count();
-#endif
-
+#endif                        
         regularization = 0;
         iter_in = 0;
         while (iter_in < option.max_DDP_iter)
