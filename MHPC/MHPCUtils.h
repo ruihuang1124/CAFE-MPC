@@ -19,8 +19,8 @@ public:
         
     }
 
-    void publishWBTrajectory(const MHPCProblemData<double>* problem_data);
-
+    void publishWBTrajectory(const MHPCProblemData<double>* problem_data,
+                             const MHPCConfig& config);
 public:
     wbTraj_lcmt wbtraj_lcmt;
     lcm::LCM viz_lcm;
