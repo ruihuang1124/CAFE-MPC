@@ -3,6 +3,21 @@
 #include <cassert>
 
 template <typename T, size_t xs_, size_t us_, size_t ys_>
+void QuadraticCost<T, xs_, us_, ys_>::update_weighting_matrix(std::vector<T>& weights)
+{
+    // weights = [q, r, qf]
+    assert((weights.size()==xs_+xs_+us_));
+
+    Eigen::Map<DVec<T>> qw(weights.data(), xs_);
+    Eigen::Map<DVec<T>> rw(weights.data()+xs_, us_);
+    Eigen::Map<DVec<T>> qfw(weights.data()+xs_+us_, xs_);
+    
+    Q = qw.asDiagonal();
+    R = rw.asDiagonal();
+    Qf = qfw.asDiagonal();
+}
+
+template <typename T, size_t xs_, size_t us_, size_t ys_>
 void QuadraticCost<T, xs_, us_, ys_>::running_cost(RCost& rcost, const State& x, const Contrl& u, 
                                                    const Output& y, T dt, float t)
 {    
@@ -58,15 +73,15 @@ void QuadraticTrackingCost<T, xs_, us_, ys_>::running_cost(RCost& rcost, const S
 #ifdef DEBUG_MODE    
     assert((reference != nullptr));    
 #endif
-    reference->get_reference_at_t(xr_t, ur_t, yr_t, t);
+    if (nullptr != reference)
+    {
+        reference->get_reference_at_t(xr_t, ur_t, yr_t, t);
+    } 
 
     const auto& dx = x - xr_t.template cast<T>();
     const auto& du = u - ur_t.template cast<T>();
     const auto& dy = y - yr_t.template cast<T>();
-    rcost.l = 0.5*dx.transpose() * this->Q * dx;
-    rcost.l += 0.5*du.transpose() * this->R * du;
-    rcost.l += 0.5*dy.transpose() * this->S * dy;
-    rcost.l *= dt;
+    QuadraticCost<T, xs_, us_, ys_>::running_cost(rcost, dx, du, dy, dt, t);
 }
 
 template <typename T, size_t xs_, size_t us_, size_t ys_>
@@ -76,18 +91,15 @@ void QuadraticTrackingCost<T, xs_, us_, ys_>::running_cost_par(RCost& rcost, con
 #ifdef DEBUG_MODE    
     assert((reference != nullptr));    
 #endif
-    reference->get_reference_at_t(xr_t, ur_t, yr_t, t);
+    if (nullptr != reference)
+    {
+        reference->get_reference_at_t(xr_t, ur_t, yr_t, t);
+    } 
 
     const auto& dx = x - xr_t.template cast<T>();
     const auto& du = u - ur_t.template cast<T>();
     const auto& dy = y - yr_t.template cast<T>();
-    rcost.lx = dt * this->Q * dx;
-    rcost.lu = dt * this->R * du;
-    rcost.ly = dt * this->S * dy;
-    rcost.lxx = dt * this->Q;
-    rcost.luu = dt * this->R;
-    rcost.lux.setZero();
-    rcost.lyy = dt * this->S;    
+    QuadraticCost<T, xs_, us_, ys_>::running_cost_par(rcost, dx, du, dy, dt, t);
 }
 
 template <typename T, size_t xs_, size_t us_, size_t ys_>
@@ -96,11 +108,13 @@ void QuadraticTrackingCost<T, xs_, us_, ys_>::terminal_cost(TCost&tcost, const S
 #ifdef DEBUG_MODE    
     assert((reference != nullptr));    
 #endif
-    reference->get_reference_at_t(xr_t, ur_t, yr_t, tend);
+    if (nullptr != reference)
+    {
+        reference->get_reference_at_t(xr_t, ur_t, yr_t, tend);
+    }    
 
     const auto& dx = x - xr_t.template cast<T>();
-    tcost.Phi = dx.transpose() * this->Qf * dx;
-    tcost.Phi *= 0.5; 
+    QuadraticCost<T, xs_, us_, ys_>::terminal_cost(tcost, dx, tend);
 }
 
 template <typename T, size_t xs_, size_t us_, size_t ys_>
@@ -109,11 +123,13 @@ void QuadraticTrackingCost<T, xs_, us_, ys_>::terminal_cost_par(TCost&tcost, con
 #ifdef DEBUG_MODE        
     assert((reference != nullptr));    
 #endif
-    reference->get_reference_at_t(xr_t, ur_t, yr_t, tend);
+    if (nullptr != reference)
+    {
+        reference->get_reference_at_t(xr_t, ur_t, yr_t, tend);
+    } 
 
     const auto& dx = x - xr_t.template cast<T>();    
-    tcost.Phix = this->Qf * dx;
-    tcost.Phixx = this->Qf;
+    QuadraticCost<T, xs_, us_, ys_>::terminal_cost_par(tcost, dx, tend);
 }
 
 template <typename T, size_t xs_, size_t us_, size_t ys_>
