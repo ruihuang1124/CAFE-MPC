@@ -1,7 +1,6 @@
 #include <functional> // std::bind, and std::placeholder
 #include <tabulate/table.hpp>
 #include "MHPCProblem.h"
-#include "MHPCCost.h"
 #include "MHPCConstraint.h"
 #include "TrajectoryManagement.h"
 #include "HSDDP_Utils.h"
@@ -58,6 +57,19 @@ void MHPCProblem<T>::prepare_initialization()
 
     /* Build Reset model */
     reset_ptr = std::make_shared<MHPCReset<T>>(wbm_ptr.get(), footStepPlanner.get());    
+
+    /* Build cost model */
+    wb_track_cost = std::make_shared<WBTrackingCost<T>>();
+    wb_track_cost->set_reference(&wb_reference);
+
+    wb_foot_reg = std::make_shared<WBFootPlaceReg<T>>(quad_reference, wbm_ptr);
+
+    swing_pos_tracking = std::make_shared<SwingFootPosTracking<T>>(quad_reference, wbm_ptr);
+
+    swing_vel_tracking = std::make_shared<SwingFootVelTracking<T>>(quad_reference, wbm_ptr);
+
+    srb_track_cost = std::make_shared<SRBTrackingCost<T>>();
+    srb_track_cost->set_reference(&srb_reference);
 
     if (approx_leq_scalar(plan_dur_all, .0))
     {
@@ -129,8 +141,25 @@ template <typename T>
 void MHPCProblem<T>::initialize_parameters()
 {
     /* Initialize REB and AL parameters for ineq and eq constraints */    
-    const std::string& fname= "../MHPC/settings/constraint_params.info";
-    loadConstrintParameters(fname, grf_reb_param, torque_reb_param, td_al_param);
+    const std::string& constraint_setting_fname= "../"+pconfig->constraintParamFileName;
+    loadConstrintParameters(constraint_setting_fname, 
+                            grf_reb_param, 
+                            torque_reb_param, 
+                            jointspeed_reb_param,
+                            minheight_reb_param,
+                            td_al_param);
+
+    if (!pconfig->costFileName.empty())
+    {
+        const std::string& cost_weights_fname= "../"+pconfig->costFileName;
+        loadCostWeights(cost_weights_fname, 
+                        wb_track_cost,
+                        wb_foot_reg,
+                        swing_pos_tracking,
+                        swing_vel_tracking,
+                        srb_track_cost);    
+    }
+        
 }
 
 template <typename T>
@@ -379,34 +408,41 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs,
     phase->set_dynamics(dynamics_callback);
     phase->set_dynamics_partial(dynamics_partial_callback);
 
-    /* set tracking cost */
-    shared_ptr<WBTrackingCost<T>> track_cost;
-    track_cost = make_shared<WBTrackingCost<T>>(phase_contact);
-    track_cost->set_reference(&wb_reference);
-    phase->add_cost(track_cost);
+    /* set tracking cost */    
+    phase->add_cost(wb_track_cost);
 
     /*Set foot regularization */
-    shared_ptr<WBFootPlaceReg<T>> foot_reg;
-    foot_reg = make_shared<WBFootPlaceReg<T>>(phase_contact,quad_reference, wbm_ptr);
-    phase->add_cost(foot_reg);
+    phase->add_cost(wb_foot_reg);
 
     /* Swing foot posiiton tracking */   
-    shared_ptr<SwingFootPosTracking<T>> swing_pos_tracking;
-    swing_pos_tracking = make_shared<SwingFootPosTracking<T>>(phase_contact, quad_reference, wbm_ptr);
     phase->add_cost(swing_pos_tracking);
 
     /* Swing foot velocity tracking */
-    shared_ptr<SwingFootVelTracking<T>> swing_vel_tracking;
-    swing_vel_tracking = make_shared<SwingFootVelTracking<T>>(phase_contact, quad_reference, wbm_ptr);
     phase->add_cost(swing_vel_tracking);
 
-    /* Torque limit */
+    /* Torque limit */    
     shared_ptr<MHPCConstraints::TorqueLimit<T>> torqueLimit;
     torqueLimit = std::make_shared<MHPCConstraints::TorqueLimit<T>>();
     torqueLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
     torqueLimit->create_data();
     torqueLimit->initialize_params(torque_reb_param);
     phase->add_pathConstraint(torqueLimit);
+
+    /* Joint speed limit */
+    shared_ptr<MHPCConstraints::JointSpeedLimit<T>> jointSpeedLimit;
+    jointSpeedLimit = std::make_shared<MHPCConstraints::JointSpeedLimit<T>>();
+    jointSpeedLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
+    jointSpeedLimit->create_data();
+    jointSpeedLimit->initialize_params(jointspeed_reb_param);
+    phase->add_pathConstraint(jointSpeedLimit);
+
+    /* Minimum Height constraint */
+    shared_ptr<MHPCConstraints::WBMinimumHeight<T>> wbMinHeightConstraint;
+    wbMinHeightConstraint = std::make_shared<MHPCConstraints::WBMinimumHeight<T>>();
+    wbMinHeightConstraint->update_horizon_len(pdata->wb_phase_horizons[idx]);
+    wbMinHeightConstraint->create_data();
+    wbMinHeightConstraint->initialize_params(minheight_reb_param);
+    phase->add_pathConstraint(wbMinHeightConstraint);
 
     /* Set GRF constraints if any*/
     if (phase_contact.cwiseEqual(1).any())
@@ -438,11 +474,16 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, SRBM::xs
     phase->set_dynamics(dynamics_callback);
     phase->set_dynamics_partial(dynamics_partial_callback);
 
-    /* set tracking cost */
-    shared_ptr<SRBTrackingCost<T>> track_cost;
-    track_cost = make_shared<SRBTrackingCost<T>>();
-    track_cost->set_reference(&srb_reference);
-    phase->add_cost(track_cost);   
+    /* set tracking cost */    
+    phase->add_cost(srb_track_cost);   
+
+     /* Minimum Height constraint */
+    shared_ptr<MHPCConstraints::SRBMMinimumHeight<T>> srbMinHeightConstraint;
+    srbMinHeightConstraint = std::make_shared<MHPCConstraints::SRBMMinimumHeight<T>>();
+    srbMinHeightConstraint->update_horizon_len(pdata->srb_phase_horizon);
+    srbMinHeightConstraint->create_data();
+    srbMinHeightConstraint->initialize_params(minheight_reb_param);
+    phase->add_pathConstraint(srbMinHeightConstraint);
         
 }
 

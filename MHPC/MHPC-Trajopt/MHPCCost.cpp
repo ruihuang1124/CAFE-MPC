@@ -9,6 +9,7 @@ void WBFootPlaceReg<T>::running_cost(RCost &rcost, const State &x, const Contrl 
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footPositions(pFoot, x);
     rcost.l = 0;
@@ -35,6 +36,7 @@ void WBFootPlaceReg<T>::running_cost_par(RCost &rcost, const State &x, const Con
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footPositions(pFoot, x);
     wbm_ptr->get_footJacobians(J_foot, x);
@@ -66,6 +68,7 @@ void WBFootPlaceReg<T>::terminal_cost(TCost &tcost, const State &x, float tend)
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footPositions(pFoot, x);
     tcost.Phi = 0;
@@ -89,6 +92,7 @@ void WBFootPlaceReg<T>::terminal_cost_par(TCost &tcost, const State &x, float te
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
     
     wbm_ptr->get_footPositions(pFoot, x);
     wbm_ptr->get_footJacobians(J_foot, x);
@@ -114,6 +118,14 @@ void WBFootPlaceReg<T>::terminal_cost_par(TCost &tcost, const State &x, float te
 }
 
 template <typename T>
+void WBFootPlaceReg<T>::update_weighting_matrix(std::vector<T>& weights)
+{
+    assert((weights.size() == 3));
+
+    QFoot = Eigen::Map<DVec<T>>(weights.data(),3).asDiagonal();
+}
+
+template <typename T>
 void SwingFootPosTracking<T>::running_cost(RCost &rcost, const State &x, const Contrl &u, const Output &y, T dt, float t)
 {
     (void)(y);
@@ -122,6 +134,7 @@ void SwingFootPosTracking<T>::running_cost(RCost &rcost, const State &x, const C
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footPositions(pFoot, x);
     rcost.l = 0;
@@ -148,6 +161,7 @@ void SwingFootPosTracking<T>::running_cost_par(RCost &rcost, const State &x, con
 
     pCoM = x.template head<3>();
     pCoM_des = quad_astate->body_state.head<3>();
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footPositions(pFoot, x);
     wbm_ptr->get_footJacobians(J_foot, x);
@@ -173,11 +187,20 @@ void SwingFootPosTracking<T>::running_cost_par(RCost &rcost, const State &x, con
 }
 
 template <typename T>
+void SwingFootPosTracking<T>::update_weighting_matrix(std::vector<T>& weights)
+{
+    assert((weights.size() == 3));
+
+    QFoot = Eigen::Map<DVec<T>>(weights.data(),3).asDiagonal();
+}
+
+template <typename T>
 void SwingFootVelTracking<T>::running_cost(RCost &rcost, const State &x, const Contrl &u, const Output &y, T dt, float t)
 {
     (void)(y);
     (void)(u);
     quad_astate = quad_reference->get_a_reference_ptr_at_t(t);
+    const auto& contact = quad_astate->contact;
 
     wbm_ptr->get_footVelocities(vFoot, x);
     rcost.l = 0;
@@ -199,7 +222,8 @@ void SwingFootVelTracking<T>::running_cost_par(RCost &rcost, const State &x, con
     (void)(y);
     (void)(u);
     quad_astate = quad_reference->get_a_reference_ptr_at_t(t);
-
+    const auto& contact = quad_astate->contact;
+    
     wbm_ptr->get_footVelocities(vFoot, x);
     wbm_ptr->get_footVelDerivatives(Jv_foot, x);
     wbm_ptr->get_footJacobians(J_foot, x);
@@ -218,6 +242,13 @@ void SwingFootVelTracking<T>::running_cost_par(RCost &rcost, const State &x, con
             rcost.lxx += (J.transpose() * QFoot * J) * dt;            
         }
     }
+}
+template <typename T>
+void SwingFootVelTracking<T>::update_weighting_matrix(std::vector<T>& weights)
+{
+    assert((weights.size() == 3));
+    
+    QFoot = Eigen::Map<DVec<T>>(weights.data(),3).asDiagonal();
 }
 
 template <typename T>

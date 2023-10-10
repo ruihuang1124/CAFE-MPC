@@ -11,8 +11,10 @@
 #include "SinglePhase.h"
 #include "TrajectoryManagement.h"
 #include "MHPCFootStep.h"
+#include "MHPCCost.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 struct MHPCConfig
 {
@@ -36,6 +38,10 @@ struct MHPCConfig
 
     std::string referenceFileName;
 
+    std::string costFileName;
+
+    std::string constraintParamFileName;
+
     void print(){
         std::cout << "===================== MHPC Config =================== \n";
         std::cout << "WB plan duration = \t" << plan_dur_wb << "\n";
@@ -45,6 +51,8 @@ struct MHPCConfig
         std::cout << "MPC updates every " << dt_mpc << " seconds" << "\n";
         std::cout << "Baumgart alpha (vel) " << BG_alpha << "\n";        
         std::cout << "Reference " << referenceFileName << "\n";
+        std::cout << "Cost file location " << costFileName << "\n";
+        std::cout << "Constraint_param file location " << constraintParamFileName << "\n";
     }
 };
 
@@ -61,12 +69,16 @@ inline void loadMHPCConfig(const std::string filename, MHPCConfig& config)
     config.dt_srb = pt.get<double>("config.dt_srb");
     config.BG_alpha = pt.get<double>("config.BG_alpha");    
     config.referenceFileName = pt.get<std::string>("config.referenceFile");
+    config.costFileName = pt.get<std::string>("config.costFile");
+    config.constraintParamFileName = pt.get<std::string>("config.constraintParamFile");
 }
 
 template<typename T>
 inline void loadConstrintParameters(const std::string&fileName, 
                                     REB_Param_Struct<T>& GRF_reb_param,
                                     REB_Param_Struct<T>& Torque_reb_param,
+                                    REB_Param_Struct<T>& JointSpeed_reb_param,
+                                    REB_Param_Struct<T>& MinHeight_reb_param,
                                     AL_Param_Struct<T>& TD_al_param)
 {
 	boost::property_tree::ptree pt;
@@ -81,9 +93,153 @@ inline void loadConstrintParameters(const std::string&fileName,
 	Torque_reb_param.delta_min = pt.get<T>("Torque_ReB.delta_min");
 	Torque_reb_param.eps = pt.get<T>("Torque_ReB.eps");	
 
+    JointSpeed_reb_param.delta = pt.get<T>("JointSpeed_ReB.delta");
+	JointSpeed_reb_param.delta_min = pt.get<T>("JointSpeed_ReB.delta_min");
+	JointSpeed_reb_param.eps = pt.get<T>("JointSpeed_ReB.eps");	
+
+    MinHeight_reb_param.delta = pt.get<T>("MinHeight_ReB.delta");
+	MinHeight_reb_param.delta_min = pt.get<T>("MinHeight_ReB.delta_min");
+	MinHeight_reb_param.eps = pt.get<T>("MinHeight_ReB.eps");	
+
     TD_al_param.sigma = pt.get<T>("TD_AL.sigma");
 	TD_al_param.lambda = pt.get<T>("TD_AL.lambda");	
     TD_al_param.sigma_max = pt.get<T>("TD_AL.sigma_max");
+}
+
+template<typename T>
+inline void loadCostWeights(const std::string&fileName,
+                            shared_ptr<WBTrackingCost<T>> wb_tracking_cost,
+                            shared_ptr<WBFootPlaceReg<T>> wb_foot_reg,
+                            shared_ptr<SwingFootPosTracking<T>> swing_pos_tracking,
+                            shared_ptr<SwingFootVelTracking<T>> swing_vel_tracking,
+                            shared_ptr<SRBTrackingCost<T>> srb_tracking_cost)
+{
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_json(fileName, pt);
+	std::cout << "********* loading Cost weights from file **********\n" << fileName << "\n\n";
+    
+    /* Load weights for WB tracking */
+    {
+        std::vector<T> qw;
+        for (auto& item : pt.get_child("WB_Tracking_Cost.qw_qB"))
+        {            
+            qw.push_back(item.second.get_value<T>());
+        }
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (auto& item : pt.get_child("WB_Tracking_Cost.qw_qJ"))
+            {
+                qw.push_back(item.second.get_value<T>());
+            }
+        }        
+        for (auto& item : pt.get_child("WB_Tracking_Cost.qw_vB"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (auto& item : pt.get_child("WB_Tracking_Cost.qw_vJ"))
+            {
+                qw.push_back(item.second.get_value<T>());
+            }
+        }    
+        std::vector<T> rw;
+        for (size_t i = 0; i < 12; i++)
+        {
+            rw.push_back(pt.get<T>("WB_Tracking_Cost.rw"));
+        }
+        std::vector<T> qfw;
+        for (auto& item : pt.get_child("WB_Tracking_Cost.qfw_qB"))
+        {
+            qfw.push_back(item.second.get_value<T>());
+        }
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (auto& item : pt.get_child("WB_Tracking_Cost.qfw_qJ"))
+            {
+                qfw.push_back(item.second.get_value<T>());
+            }
+        }     
+        for (auto& item : pt.get_child("WB_Tracking_Cost.qfw_vB"))
+        {
+            qfw.push_back(item.second.get_value<T>());
+        }
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (auto& item : pt.get_child("WB_Tracking_Cost.qfw_vJ"))
+            {
+                qfw.push_back(item.second.get_value<T>());
+            }
+        }    
+       
+        std::vector<T> weights;
+        weights.insert(weights.end(), std::move_iterator(qw.begin()), std::move_iterator(qw.end()));
+        weights.insert(weights.end(), std::move_iterator(rw.begin()), std::move_iterator(rw.end()));
+        weights.insert(weights.end(), std::move_iterator(qfw.begin()), std::move_iterator(qfw.end()));
+        wb_tracking_cost->update_weighting_matrix(weights);        
+    }             
+
+    /* Load weights for SRB tracking */
+    {
+        std::vector<T> qw;
+        for (auto& item : pt.get_child("SRB_Tracking_Cost.qw_qB"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }       
+        for (auto& item : pt.get_child("SRB_Tracking_Cost.qw_vB"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }        
+        std::vector<T> rw;
+        for (size_t i = 0; i < 12; i++)
+        {
+            rw.push_back(pt.get<T>("SRB_Tracking_Cost.rw"));
+        }
+        std::vector<T> qfw;
+        for (auto& item : pt.get_child("SRB_Tracking_Cost.qfw_qB"))
+        {
+            qfw.push_back(item.second.get_value<T>());
+        }       
+        for (auto& item : pt.get_child("SRB_Tracking_Cost.qfw_vB"))
+        {
+            qfw.push_back(item.second.get_value<T>());
+        }   
+        std::vector<T> weights;
+        weights.insert(weights.end(), std::move_iterator(qw.begin()), std::move_iterator(qw.end()));
+        weights.insert(weights.end(), std::move_iterator(rw.begin()), std::move_iterator(rw.end()));
+        weights.insert(weights.end(), std::move_iterator(qfw.begin()), std::move_iterator(qfw.end()));
+        srb_tracking_cost->update_weighting_matrix(weights);        
+    }       
+
+    /* Load weigths for foot placement regularization */
+    {
+        std::vector<T> qw;
+        for (auto& item : pt.get_child("WB_FootPlace_Reg.qw_per_foot"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }  
+        wb_foot_reg->update_weighting_matrix(qw);        
+    }
+
+    /* Load weigths for swing foot position tracking */
+    {
+        std::vector<T> qw;
+        for (auto& item : pt.get_child("Swing_Pos_Tracking.qw_per_foot"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }  
+        swing_pos_tracking->update_weighting_matrix(qw);        
+    }
+
+    /* Load weigths for swing foot velocity tracking */
+    {
+        std::vector<T> qw;
+        for (auto& item : pt.get_child("Swing_Vel_Tracking.qw_per_foot"))
+        {
+            qw.push_back(item.second.get_value<T>());
+        }  
+        swing_vel_tracking->update_weighting_matrix(qw);        
+    }
 }
 
 
@@ -232,7 +388,7 @@ public:
 
     void pretty_print();   
 
-private:
+public:
     MHPCProblemData<T>* pdata;
     const MHPCConfig* pconfig;
     std::shared_ptr<QuadReference> quad_reference;
@@ -241,6 +397,12 @@ private:
     std::shared_ptr<SRBM::Model<T>> srbm_ptr;
     std::shared_ptr<MHPCReset<T>> reset_ptr;
     
+    shared_ptr<WBTrackingCost<T>> wb_track_cost;
+    shared_ptr<WBFootPlaceReg<T>> wb_foot_reg;
+    shared_ptr<SwingFootPosTracking<T>> swing_pos_tracking;
+    shared_ptr<SwingFootVelTracking<T>> swing_vel_tracking;
+    shared_ptr<SRBTrackingCost<T>> srb_track_cost;
+
     pinocchio::ModelTpl<T> pin_model;
 
     WBReference wb_reference;
@@ -260,6 +422,8 @@ private:
     // Define constraint parameters (for WB plan)
     REB_Param_Struct<T> grf_reb_param;
     REB_Param_Struct<T> torque_reb_param;
+    REB_Param_Struct<T> jointspeed_reb_param;
+    REB_Param_Struct<T> minheight_reb_param;
     AL_Param_Struct<T> td_al_param;  
 };
 

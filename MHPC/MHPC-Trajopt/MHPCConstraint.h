@@ -55,10 +55,10 @@ namespace MHPCConstraints
         void compute_violation(const State &, const Contrl &, const Output &, int k) override;
 
         void compute_partial(const State &, const Contrl &, const Output &, int k) override;
-    };
+    };    
 
     template <typename T>
-    class JointLimit : public PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>
+    class JointSpeedLimit : public PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>
     {
     private:
         using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::State;
@@ -68,8 +68,14 @@ namespace MHPCConstraints
         MatMN<T, 2*WBM::nu, WBM::nu> C;
         VecM<T, 2*WBM::nu> b;
 
+        // Default lower and upper bound
+        T lb_{-20.0};
+        T ub_{20.0};
+
     public:
-        JointLimit();
+        JointSpeedLimit();
+
+        void update_joint_limit(const T lb, const T ub) {lb_ = lb; ub_ = ub;}
         
         void compute_violation(const State &, const Contrl &, const Output &, int k) override;
 
@@ -107,6 +113,31 @@ namespace MHPCConstraints
     };
 
     template <typename T>
+    class WBMinimumHeight : public PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>
+    {
+    private:
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::State;
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Contrl;
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Output;
+
+        MatMN<T, 1, WBM::xs> C;        
+
+        // Default lower and upper bound
+        T h_min_{0.13};
+
+    public:
+        WBMinimumHeight(){
+            this->update_constraint_size(1);           
+        }
+
+        void set_min_height(double h_min) {h_min_ = h_min;}
+        
+        void compute_violation(const State &, const Contrl &, const Output &, int k) override;
+
+        void compute_partial(const State &, const Contrl &, const Output &, int k) override;
+    };
+
+    template <typename T>
     class SRBGRF : public PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>
     {
     private:
@@ -125,6 +156,32 @@ namespace MHPCConstraints
         {
             mu_fric = mu_fric_in;
         }
+
+        void compute_violation(const State &, const Contrl &, const Output &, int k) override;
+
+        void compute_partial(const State &, const Contrl &, const Output &, int k) override;
+
+    public:
+        VecM<int, 4> ctact_status;
+    };
+
+    template <typename T>
+    class SRBMMinimumHeight : public PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>
+    {
+    private:
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::State;
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::Contrl;
+        using typename PathConstraintBase<T, SRBM::xs, SRBM::us, SRBM::ys>::Output;
+        
+        // Default lower and upper bound
+        T h_min_{0.18};
+
+    public:
+        SRBMMinimumHeight(){
+            this->update_constraint_size(1);
+        }
+
+        void set_min_heighht(double h_min){h_min_ = h_min;}
 
         void compute_violation(const State &, const Contrl &, const Output &, int k) override;
 

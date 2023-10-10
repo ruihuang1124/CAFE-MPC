@@ -9,9 +9,10 @@ template <typename T>
 class WBTrackingCost : public QuadraticTrackingCost<T, WBM::xs, WBM::us, WBM::ys>
 {
 public:
-    WBTrackingCost(const VecM<int, 4>& contact) : 
+    WBTrackingCost() : 
     QuadraticTrackingCost<T, WBM::xs, WBM::us, WBM::ys>()
     {   
+        /* Default weighting matrix */
         /* Intermediate state weighting matrix */
         VecM<T, 3> q_pos(0.0, 0, 50);
         VecM<T, 3> q_eul(2.0, 10, 5);
@@ -49,10 +50,8 @@ public:
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::RCost;
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::TCost;    
 
-    WBFootPlaceReg(const VecM<int, 4>& contact_in,
-                   std::shared_ptr<QuadReference> quad_reference_in,
+    WBFootPlaceReg(std::shared_ptr<QuadReference> quad_reference_in,
                    std::shared_ptr<WBM::Model<T>> wbm_ptr_in) :
-                   contact(contact_in), 
                    quad_astate(nullptr),
                    CostBase<T, WBM::xs, WBM::us, WBM::ys>("Foot regularization")
     {
@@ -71,8 +70,9 @@ public:
 
     void terminal_cost_par(TCost&, const State&x, float tend=0) override;    
 
-private:
-    Vec4<int> contact;
+    virtual void update_weighting_matrix(std::vector<T>& weights) override;
+
+private:    
     MatMN<T, 3, 3> QFoot;
     VecM<double, 3> pCoM_des;
     VecM<double, 3> prel_des;
@@ -103,13 +103,11 @@ public:
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::RCost;
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::TCost;    
 
-    SwingFootPosTracking(const VecM<int, 4>& contact_in, 
-                      std::shared_ptr<QuadReference> quad_reference_in,
-                      std::shared_ptr<WBM::Model<T>> wbm_ptr_in) :
-                      contact(contact_in),                    
-                      quad_reference(quad_reference_in),
-                      wbm_ptr(wbm_ptr_in),
-                      CostBase<T, WBM::xs, WBM::us, WBM::ys>("Swing_Pos_Tracking")
+    SwingFootPosTracking(std::shared_ptr<QuadReference> quad_reference_in,
+                         std::shared_ptr<WBM::Model<T>> wbm_ptr_in) :                         
+                         quad_reference(quad_reference_in),
+                         wbm_ptr(wbm_ptr_in),
+                         CostBase<T, WBM::xs, WBM::us, WBM::ys>("Swing_Pos_Tracking")
     {
         VecM<T, 3> qFoot(10,10,40);
         QFoot = qFoot.asDiagonal();                 
@@ -123,8 +121,9 @@ public:
 
     void terminal_cost_par(TCost&, const State&x, float tend=0) override {}    
 
-private:
-    Vec4<int> contact;
+    virtual void update_weighting_matrix(std::vector<T>& weights) override;
+
+private:    
     MatMN<T, 3, 3> QFoot;
     VecM<double, 3> pCoM_des;
     VecM<double, 3> prel_des;
@@ -154,13 +153,11 @@ public:
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::RCost;
     using typename CostBase<T,WBM::xs, WBM::us, WBM::ys>::TCost;    
 
-    SwingFootVelTracking(const VecM<int, 4>& contact_in, 
-                      std::shared_ptr<QuadReference> quad_reference_in,
-                      std::shared_ptr<WBM::Model<T>> wbm_ptr_in) :
-                      contact(contact_in),                    
-                      quad_reference(quad_reference_in),
-                      wbm_ptr(wbm_ptr_in),
-                      CostBase<T, WBM::xs, WBM::us, WBM::ys>("Swing_Vel_Tracking")
+    SwingFootVelTracking( std::shared_ptr<QuadReference> quad_reference_in,
+                          std::shared_ptr<WBM::Model<T>> wbm_ptr_in) :                                    
+                          quad_reference(quad_reference_in),
+                          wbm_ptr(wbm_ptr_in),
+                          CostBase<T, WBM::xs, WBM::us, WBM::ys>("Swing_Vel_Tracking")
     {
         VecM<T, 3> qFoot(2.0,2.0,4.0);
         QFoot = qFoot.asDiagonal();                 
@@ -174,8 +171,8 @@ public:
 
     void terminal_cost_par(TCost&, const State&x, float tend=0) override {}    
 
+    virtual void update_weighting_matrix(std::vector<T>& weights) override;
 private:
-    Vec4<int> contact;
     MatMN<T, 3, 3> QFoot;
    
     Vec3<T> vFoot[4];
@@ -212,7 +209,7 @@ public:
     void terminal_cost(TCost&, const State& x, float tend=0) override;
 
     void terminal_cost_par(TCost&, const State&x, float tend=0) override;    
-
+    
 private:
     Vec4<int> TDStatus;
     T qFoot{1.0};
