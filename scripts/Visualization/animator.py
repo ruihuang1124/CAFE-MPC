@@ -15,11 +15,11 @@ class Animator:
         self.ground_urdf = "plane.urdf" # defautl ground 
         self.robotID = None
         self.ground = None
-        self.additional_path = None        
-        self.pb = BulletClient(pb.GUI)
+        self.additional_path = None                
         self.LINK_RGBAs = None
 
     def initialization(self):
+        self.pb = BulletClient(pb.GUI)
         self.pb.configureDebugVisualizer(pb.COV_ENABLE_SINGLE_STEP_RENDERING,1)
         self.pb.configureDebugVisualizer(pb.COV_ENABLE_GUI,0)
         self.pb.setAdditionalSearchPath(pd.getDataPath())
@@ -88,49 +88,169 @@ class Animator:
                 j_vel = np.zeros(j_vel_size)
                 self.pb.resetJointStateMultiDof(self.robotID, j, j_pose, j_vel)
 
+    def show_plots(self):
+        plt.show()
+
     def plot_pos(self, time, pos):        
         fig, axs = plt.subplots(3, 1)
         axs[0].plot(time, pos[:, 0])
-        axs[0].set_xlabel('time (s)')
+        # axs[0].set_xlabel('time (s)')
         axs[0].set_ylabel('x (m)')
+        axs[0].grid()
 
         axs[1].plot(time, pos[:, 1])
-        axs[1].set_xlabel('time (s)')
+        # axs[1].set_xlabel('time (s)')
         axs[1].set_ylabel('y (m)')
+        axs[1].grid()
 
         axs[2].plot(time, pos[:, 2])
         axs[2].set_xlabel('time (s)')
         axs[2].set_ylabel('z (m)')
-        plt.show()
+        axs[2].grid()
+        # plt.show()
+    
+    def plot_vel(self, time, vel):
+        fig, axs = plt.subplots(3, 1)
+        axs[0].plot(time, vel[:, 0])
+        # axs[0].set_xlabel('time (s)')
+        axs[0].set_ylabel('$v_x$ (m/s)')
+        axs[0].grid()
+
+        axs[1].plot(time, vel[:, 1])
+        # axs[1].set_xlabel('time (s)')
+        axs[1].set_ylabel('$v_y$ (m/s)')
+        axs[1].grid()
+
+        axs[2].plot(time, vel[:, 2])
+        axs[2].set_xlabel('time (s)')
+        axs[2].set_ylabel('$v_z$ (m/s)')
+        axs[2].grid()
+        # plt.show()
     
     def plot_eul(self, time, eul):
         fig, axs = plt.subplots(3, 1)
         axs[0].plot(time, eul[:, 0])
-        axs[0].set_xlabel('time (s)')
+        # axs[0].set_xlabel('time (s)')
         axs[0].set_ylabel('yaw (rad)')
+        axs[0].grid()
 
         axs[1].plot(time, eul[:, 1])
-        axs[1].set_xlabel('time (s)')
+        # axs[1].set_xlabel('time (s)')
         axs[1].set_ylabel('pitch (rad)')
+        axs[1].grid()
 
         axs[2].plot(time, eul[:, 2])
         axs[2].set_xlabel('time (s)')
         axs[2].set_ylabel('roll (rad)')
-        plt.show()
+        axs[2].grid()
+        # plt.show()
+    
+    def plot_eulrate(self, time, eulrate):
+        fig, axs = plt.subplots(3, 1)
+        axs[0].plot(time, eulrate[:, 0])
+        # axs[0].set_xlabel('time (s)')
+        axs[0].set_ylabel('yaw rate (rad/s)')
+        axs[0].grid()
+
+        axs[1].plot(time, eulrate[:, 1])
+        # axs[1].set_xlabel('time (s)')
+        axs[1].set_ylabel('pitch rate (rad/s)')
+        axs[1].grid()
+
+        axs[2].plot(time, eulrate[:, 2])
+        axs[2].set_xlabel('time (s)')
+        axs[2].set_ylabel('roll rate (rad/s)')
+        axs[2].grid()
+        # plt.show()
+    
+    def plot_centroid_ang_momentum(self, time, hg):
+        fig, axs = plt.subplots(3, 1)
+        t_ = time[0:-1]
+        hg_ = hg[0:-1, :]
+        axs[0].plot(t_, hg_[:, 0])
+        # axs[0].set_xlabel('time (s)')
+        axs[0].set_ylabel('hg_x')
+        axs[0].grid()
+
+        axs[1].plot(t_, hg_[:, 1])
+        # axs[1].set_xlabel('time (s)')
+        axs[1].set_ylabel('hg_y')
+        axs[1].grid()
+
+        axs[2].plot(t_, hg_[:, 2])
+        axs[2].set_xlabel('time (s)')
+        axs[2].set_ylabel('hg_z ')
+        axs[2].grid()
+        # plt.show()
+    
+    def plot_centroid_ang_momentum_derivative(self, time, dhg):
+        fig, axs = plt.subplots(3, 1)
+        time_ = time[0:-1]
+        dhg_ = dhg[0:-1, :]
+        axs[0].plot(time_, dhg_[:, 0])
+        # axs[0].set_xlabel('time (s)')
+        axs[0].set_ylabel('dhg_x')
+        axs[0].grid()
+
+        axs[1].plot(time_, dhg_[:, 1])
+        # axs[1].set_xlabel('time (s)')
+        axs[1].set_ylabel('dhg_y')
+        axs[1].grid()
+
+        axs[2].plot(time_, dhg_[:, 2])
+        axs[2].set_xlabel('time (s)')
+        axs[2].set_ylabel('dhg_z ')
+        axs[2].grid()
+        # plt.show()
+    
+    def plot_defect(self, time, defects):
+        fig, ax = plt.subplots()
+        ax.plot(time, defects)
+        ax.set_xlabel('time (s)')
+        ax.set_ylabel('defect')
+        ax.grid()
+        # plt.show()
+
+    def plot_roll_abad_rate(self, time, qd, eulrate):        
+        _, ax = plt.subplots()
+        ax.plot(time, eulrate[:, 2])
+        ax.plot(time, qd[:, 0])
+        ax.plot(time, qd[:, 3])
+        ax.plot(time, qd[:, 6])
+        ax.plot(time, qd[:, 9])
+        ax.set_xlabel('time (s)')
+        ax.set_ylabel('Rate of change (rad/s)')
+        ax.grid()
+        ax.legend(["Roll", "FL", "FR", "HL", "HR"])
+
 
     def plot_joint_angles(self, time, q):
-        """ Plot joint torques versus time
+        """ Plot joint angles versus time
         time: time step in Nx1 numpy array 
         q: joint angles in Nxn numpy array 
         """
-        LEG_INDEX = {'FR': 0, 'FL': 1, 'RR': 2, 'RL': 3}
+        LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
         fig, axs = plt.subplots(2, 2)
         for legname, legid in LEG_INDEX.items():
             axs[int(legid/2), legid % 2].plot(time, q[:, 3*legid:3*legid+3])
             axs[int(legid/2), legid % 2].set_xlabel('time (s)')
             axs[int(legid/2), legid % 2].set_ylabel('q (rad)')
             axs[int(legid/2), legid % 2].set_title(legname)
-            axs[0, 0].legend(['abad', 'hip', 'knee'])        
+            axs[0, 0].legend(['abad', 'hip', 'knee']) 
+
+    def plot_joint_speed(self, time, qd):
+        """ Plot joint torques versus time
+        time: time step in Nx1 numpy array 
+        q: joint angles in Nxn numpy array 
+        """
+        LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
+        fig, axs = plt.subplots(2, 2)
+        for legname, legid in LEG_INDEX.items():
+            axs[int(legid/2), legid % 2].plot(time, qd[:, 3*legid:3*legid+3])
+            axs[int(legid/2), legid % 2].set_xlabel('time (s)')
+            axs[int(legid/2), legid % 2].set_ylabel('qd (rad/s)')
+            axs[int(legid/2), legid % 2].set_title(legname)
+            axs[0, 0].legend(['abad', 'hip', 'knee']) 
 
     def plot_joint_torques(self, time, torque):
         """ Plot joint torques versus time
@@ -145,7 +265,7 @@ class Animator:
             axs[int(legid/2), legid % 2].set_ylabel('torque (Nm)')
             axs[int(legid/2), legid % 2].set_title(legname)
             axs[0, 0].legend(['abad', 'hip', 'knee'])
-        plt.show()
+        # plt.show()
 
     def plot_GRF(self, time , GRF):
         LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
@@ -156,8 +276,17 @@ class Animator:
             axs[int(legid/2), legid % 2].set_ylabel('GRF (N)')
             axs[int(legid/2), legid % 2].set_title(legname)
             axs[0, 0].legend(['Fx', 'Fy', 'Fz'])
-        plt.show()        
+        # plt.show()        
+
+    def plot_contact(self, time, contact):
+        LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
+        fig, axs = plt.subplots(2, 2)
+        for legname, legid in LEG_INDEX.items():
+            axs[int(legid/2), legid % 2].plot(time, contact[:, legid])
+            axs[int(legid/2), legid % 2].set_xlabel('time (s)')            
+            axs[int(legid/2), legid % 2].set_title(legname)
+        # plt.show()
 
     def plot_feasibility(self, time, feas):
         plt.plot(time, feas)
-        plt.show()
+        # plt.show()
