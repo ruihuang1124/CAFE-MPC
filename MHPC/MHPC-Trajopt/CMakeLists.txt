@@ -13,3 +13,5 @@ target_include_directories(mhpc-trajopt PUBLIC ../../Reference)
 target_link_libraries(mhpc-trajopt PUBLIC casadigen_mhpc hsddp pinocchio::pinocchio)
 
 add_subdirectory(test)
+
+add_subdirectory(BarrelRoll)
