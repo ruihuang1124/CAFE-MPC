@@ -178,6 +178,14 @@ def flip_left_and_right(vec12):
     vec12_flipped[np.array([9,10,11])] = vec12[np.array([6,7,8])]
     return vec12_flipped
 
+def flip_contact_left_right(contact):
+    c_flipped = contact.copy()
+    c_flipped[0] = contact[1]
+    c_flipped[1] = contact[0]
+    c_flipped[2] = contact[3]
+    c_flipped[3] = contact[2]
+    return c_flipped
+
 def rearrange_traj_for_viz(wbtraj_lcmt):
     for k in range(wbtraj_lcmt.sz):                
         qJ = flip_hip_knee_direction(np.array(wbtraj_lcmt.qJ[k]))                
@@ -194,12 +202,7 @@ def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact):
 
         pf_k = flip_left_and_right(pf[k])
         vf_k = flip_left_and_right(vf[k])
-
-        c_k = contact[k].copy()
-        c_k[0] = contact[k][1]
-        c_k[1] = contact[k][0]
-        c_k[2] = contact[k][3]
-        c_k[3] = contact[k][2]
+        c_k = flip_contact_left_right(contact[k])
 
         jnt[k] = jnt_k
         pf[k] = pf_k
@@ -213,7 +216,7 @@ def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact):
     np.savetxt("data/contact.csv", np.asarray(contact), delimiter=",", fmt='%u')
     np.savetxt("data/ee_vel.csv", np.asarray(vf), delimiter=",", fmt='%8.4f')
 
-def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau):
+def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau, contact_tau):
     lcm_ = lcm.LCM()
     wbtraj_lcmt = wbTraj_lcmt()
     traj_sz = len(pos_tau)
@@ -226,6 +229,7 @@ def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau):
         wbtraj_lcmt.qJ.append(list(jnt_tau[k]))
         wbtraj_lcmt.qJd.append([0]*12)
         wbtraj_lcmt.torque.append([0]*12)
+        wbtraj_lcmt.contact.append(list(contact_tau[k]))
     
     rearrange_traj_for_viz(wbtraj_lcmt)
 

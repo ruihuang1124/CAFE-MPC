@@ -9,7 +9,7 @@ robot = MiniCheetah()
 
 zd_stand = .1464
 zd_air = 0.35
-pCoM_landing = np.array([0.0, -0.2, zd_stand])
+pCoM_landing = np.array([0.0, -0.4, zd_stand])
 
 barrel_planner = BarrelRoll()
 barrel_planner.buildSchedule()
@@ -39,7 +39,8 @@ for k in range(N):
     for l in range(4):        
             pf.append(barrel_planner.getFootPosition(l, t))
             vf.append(barrel_planner.getFootVelocity(l, t))
-    jnt_pos = robot.ik(pos, eul, np.hstack(pf))
+    # jnt_pos = robot.ik(pos, eul, np.hstack(pf))
+    jnt_pos = np.array([-0.35, -1.2, 2.4,0.35, -1.2, 2.4, -0.35,-1.2, 2.4, 0.35,-1.2, 2.4])
     pos_tau.append(pos)
     vel_tau.append(vel)
     eul_tau.append(eul)
@@ -51,7 +52,7 @@ for k in range(N):
     time.append(t)
 
 utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
-# utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
+# utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau, contact_tau)
 
 # utils.plot_com_pos(time, pos_tau)
 # utils.plot_com_vel(time, vel_tau)
@@ -61,6 +62,6 @@ utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, v
 # utils.plot_footPosition_and_CoM(pf_tau, pos_tau)
 # utils.animate_footPositions_and_CoM(0, pf_tau, pos_tau)
 # utils.plot_jnt_position(time, jnt_tau, 0)
-utils.plot_eul(time, eul_tau)
+# utils.plot_eul(time, eul_tau)
 
 

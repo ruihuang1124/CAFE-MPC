@@ -17,11 +17,22 @@ DEFAULT_JOINT_POSE = [np.array([0, -1.2, 2.4]),
                       np.array([0, -1.2, 2.4]), 
                       np.array([0, -1.2, 2.4])]  
 
+def projectile_pos(T,t):
+    h = 1./8.*9.81*T*T
+    a = -4.0*h/(T**2)
+    z = a*t*(t-T)
+    return z
+def projectile_vel(T,t):
+    h = 1./8.*9.81*T*T
+    a = -4.0*h/(T**2)
+    zd = a*(2*t - T)
+    return zd
+
 @dataclass()
 class BarrelRollGait:
     modeSeqStr = ["Stance", "FL-HL", "Fly", "Stance"] # The first stance is when the left legs start pushing off the ground
     modeSequence = quad_mode.stringSeq2modeNumSeq(modeSeqStr)
-    switchingTimes = np.array([0.0, 0.05, 0.1, 0.50, 2.0])
+    switchingTimes = np.array([0.0, 0.1, 0.16, 0.50, 2.0])
 
 class BarrelRoll:
     def __init__(self) -> None:
@@ -71,6 +82,9 @@ class BarrelRoll:
         # Assume zero reference velocity for now
         # Change if needed
         vCoM = np.array([0.0, 0.0, 0.0])
+        # if t <= self.barrel_dur_:
+        #     vCoM[1] = self.pCoM_landing_[1]/self.barrel_dur_
+        # vCoM[2] = self.getZVelocity_(t)
         return vCoM
 
     def getEulerAngle(self, t):
@@ -82,6 +96,7 @@ class BarrelRoll:
     def getEulerRate(self, t):
         yaw_rate = 0.0
         pitch_rate = 0.0
+        # roll_rate = self.getRollRate_(t)
         roll_rate = 0.0
         return np.array([yaw_rate, pitch_rate, roll_rate])
     
@@ -117,22 +132,37 @@ class BarrelRoll:
         t = min(t, self.t_barrel_end_)
         roll_t = (t - self.t_barrel_start_)/(self.barrel_dur_) * 2.0 * math.pi     
         return roll_t
+    def getRollRate_(self, t):
+        roll_rate_t = 0.0
+        if (t >=0 and t <= self.t_barrel_end_):
+            roll_rate_t = 2.0 * math.pi /(self.barrel_dur_)
+        return roll_rate_t
+    
+    def getZVelocity_(self, t):
+        vzt = 0.0
+        if (t >=0 and t <= self.t_barrel_end_):
+            vzt = projectile_vel(self.barrel_dur_, t)        
+        return vzt
     
     def getZPosition_(self, t): 
-        half_barrel_time = self.barrel_dur_/2.0
-        t_barrel_middle = self.t_barrel_start_ + half_barrel_time
-        z_diff = self.zd_barrel_ - self.zd_stand_
-        if (t >= 0.0 and t < t_barrel_middle):
-            zt = self.zd_stand_ + (t - self.t_barrel_start_)/half_barrel_time * z_diff
-        elif (t >= t_barrel_middle and t <= self.t_barrel_end_):
-            zt = self.zd_barrel_ - (t - t_barrel_middle)/half_barrel_time * z_diff
+        # half_barrel_time = self.barrel_dur_/2.0
+        # t_barrel_middle = self.t_barrel_start_ + half_barrel_time
+        # z_diff = self.zd_barrel_ - self.zd_stand_
+        # if (t >= 0.0 and t < t_barrel_middle):
+        #     zt = self.zd_stand_ + (t - self.t_barrel_start_)/half_barrel_time * z_diff
+        # elif (t >= t_barrel_middle and t <= self.t_barrel_end_):
+        #     zt = self.zd_barrel_ - (t - t_barrel_middle)/half_barrel_time * z_diff
+        # else:
+        #     zt = self.zd_stand_
+        if (t >=0 and t <= self.t_barrel_end_):
+            zt = projectile_pos(self.barrel_dur_, t) + self.zd_stand_
         else:
             zt = self.zd_stand_
         return zt
     
     def getXYPositions_(self, t):        
-        t_span = self.barrel_dur_
-        t_rel = min(t, self.t_barrel_end_) - self.t_barrel_start_
+        t_span = self.barrel_dur_/1.5
+        t_rel = min(t, t_span) - self.t_barrel_start_
         x = lerp(0.0, self.pCoM_landing_[0], t_rel/t_span)
         y = lerp(0.0, self.pCoM_landing_[1], t_rel/t_span)
         return np.array([x,y])
