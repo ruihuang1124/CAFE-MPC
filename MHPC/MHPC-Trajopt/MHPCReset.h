@@ -16,8 +16,9 @@ public:
 
     MHPCReset(WBM::Model<T>* wbm_ptr_in,
               MHPCFootStep<T>* footStepPlanner_ptr_in) :
-        wbm_ptr(wbm_ptr_in),
-        footStepPlanner_ptr(footStepPlanner_ptr_in) {
+              wbm_ptr(wbm_ptr_in),
+              footStepPlanner_ptr(footStepPlanner_ptr_in) 
+        {
             I_wb.setIdentity();
             I_srb.setIdentity();
             StateProjection.setZero();

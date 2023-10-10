@@ -35,7 +35,7 @@ void MHPCLocomotion<T>::initialize()
     quad_reference_file.append(mpc_config.referenceFileName);
     quad_reference_file.append("/quad_reference.csv");
     opt_problem_data.quad_reference = std::make_shared<QuadReference>();
-    opt_problem_data.quad_reference->load_top_level_data(quad_reference_file, true);
+    opt_problem_data.quad_reference->load_top_level_data(quad_reference_file, false);
 
     // Initialize the multi-phase OCP (phase determination, memory allocation)
     opt_problem.set_problem_data(&opt_problem_data, &mpc_config);
@@ -68,10 +68,13 @@ void MHPCLocomotion<T>::initialize()
 
     // set the initial condition
     eul.setZero();
-    pos << 0, 0, 0.2486;
+    pos.setZero();
     eulrate.setZero();
     vWorld.setZero();
-    qJ = Vec3<T>(0, 0.8, -1.6).template replicate<4, 1>();
+    // qJ = Vec3<T>(0, 0.8, -1.6).template replicate<4, 1>();
+    // pos[2] = 0.2486;
+     qJ = Vec3<T>(0, 1.2, -2.4).template replicate<4, 1>();
+    pos[2] = 0.1464;
     qJd.setZero();
     x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
     solver.set_initial_condition(x_init_wb);
@@ -94,7 +97,7 @@ void MHPCLocomotion<T>::initialize()
     publish_mpc_cmd();
 
 #ifdef DEBUG_MODE
-    mhpc_viz.publishWBTrajectory(&opt_problem_data);
+    mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);
 #endif
 
     // run-time DDP setting when re-solving DDP in MPC
@@ -157,7 +160,7 @@ void MHPCLocomotion<T>::update()
 
     publish_mpc_cmd();
 #ifdef DEBUG_MODE
-    mhpc_viz.publishWBTrajectory(&opt_problem_data);
+    mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);
 #endif
     mpc_mutex.unlock();
 }

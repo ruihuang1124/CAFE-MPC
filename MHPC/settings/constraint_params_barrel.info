@@ -1,0 +1,34 @@
+GRF_ReB
+{
+    delta           0.02
+    delta_min       0.02
+    eps             0.1
+}
+
+Torque_ReB
+{
+    delta           0.01
+    delta_min       0.01
+    eps             0.1
+}
+
+JointSpeed_ReB
+{
+    delta           0.1
+    delta_min       0.1
+    eps             0.1
+}
+
+MinHeight_ReB
+{
+    delta           0.01
+    delta_min       0.01
+    eps             0.1
+}
+
+TD_AL
+{
+    sigma           50
+    sigma_max       1e4
+    lambda          0
+}
