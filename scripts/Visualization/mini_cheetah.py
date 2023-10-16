@@ -4,7 +4,12 @@ from pybullet_utils.bullet_client import BulletClient
 import pybullet
 import pybullet_data as pd
 
+import math
 
+HIP_OFFSETS = np.array([[0.19, 0.049, 0],
+                        [0.19, -0.049, 0],                                                    
+                        [-0.19, 0.049, 0],
+                        [-0.19, -0.049, 0]])
 
 class MiniCheetah:
     DEFAULT_JOINT_POSE = [0, 0.8, -1.6, 
@@ -52,7 +57,52 @@ class MiniCheetah:
                                                     solver=0)
         joint_angles = np.array(joint_angles)
         return joint_angles.reshape(12)    
-        
+    
+    def getSideSign(self,leg_id):
+        """Get if the leg is on the right (-1) or the left (+) of the robot"""
+        sideSigns = [1,-1,1,-1]
+        return sideSigns[leg_id]
+
+    def leg_fk(self, leg_id, leg_angles):
+      l1 = 0.062
+      l2 = 0.209
+      l3 = 0.195
+      l4 = 0.004
+      sideSign = self.getSideSign(leg_id)
+
+      s1 = math.sin(leg_angles[0])
+      s2 = math.sin(-leg_angles[1])
+      s3 = math.sin(-leg_angles[2])
+
+      c1 = math.cos(leg_angles[0])
+      c2 = math.cos(-leg_angles[1])
+      c3 = math.cos(-leg_angles[2])
+
+      c23 = c2*c3 - s2*s3
+      s23 = s2*c3 + c2*s3
+
+      p = np.zeros(3)
+      p[0] = l3 * s23 + l2 * s2
+      p[1] = (l1+l4) * sideSign * c1 + l3 * (s1 * c23) + l2 * c2 * s1
+      p[2] = (l1+l4) * sideSign * s1 - l3 * (c1 * c23) - l2 * c1 * c2
+      return p.copy()
+
+    def eul2quat(self, eul):
+        rpy = np.array([eul[2], eul[1], eul[0]])
+        return np.array(self.pb.getQuaternionFromEuler(rpy))    
+
+    def fk(self,
+           base_pos = None,
+           base_eul = None,
+           leg = None, qleg = None):
+        pf_in_hip = self.leg_fk(leg, qleg)
+        pf_in_body = HIP_OFFSETS[leg] + pf_in_hip
+        quat = self.eul2quat(base_eul)
+        rot = np.reshape(self.pb.getMatrixFromQuaternion(quat), (3,3))
+        pf_in_world = np.matmul(rot, pf_in_body) + base_pos
+
+        return pf_in_world
+
     def print_link_jnt_info(self):
         num_joints = self.pb.getNumJoints(self.robot)
         for j in range(num_joints):

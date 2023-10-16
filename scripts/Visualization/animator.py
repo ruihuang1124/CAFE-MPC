@@ -54,8 +54,8 @@ class Animator:
 
     def render(self):        
         while True:
-            self.pb.configureDebugVisualizer(self.pb.COV_ENABLE_RENDERING,1)
-            time.sleep(0.01)
+            self.pb.configureDebugVisualizer(self.pb.COV_ENABLE_RENDERING,1)            
+            time.sleep(0.1)
 
     def update_camera(self):
         base_pos = np.array(self.pb.getBasePositionAndOrientation(self.robotID)[0])
@@ -236,6 +236,7 @@ class Animator:
             axs[int(legid/2), legid % 2].set_xlabel('time (s)')
             axs[int(legid/2), legid % 2].set_ylabel('q (rad)')
             axs[int(legid/2), legid % 2].set_title(legname)
+            axs[int(legid/2), legid % 2].grid()
             axs[0, 0].legend(['abad', 'hip', 'knee']) 
 
     def plot_joint_speed(self, time, qd):
@@ -250,7 +251,8 @@ class Animator:
             axs[int(legid/2), legid % 2].set_xlabel('time (s)')
             axs[int(legid/2), legid % 2].set_ylabel('qd (rad/s)')
             axs[int(legid/2), legid % 2].set_title(legname)
-            axs[0, 0].legend(['abad', 'hip', 'knee']) 
+            axs[int(legid/2), legid % 2].grid()
+        axs[0, 0].legend(['abad', 'hip', 'knee']) 
 
     def plot_joint_torques(self, time, torque):
         """ Plot joint torques versus time
@@ -260,11 +262,13 @@ class Animator:
         LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
         fig, axs = plt.subplots(2, 2)
         for legname, legid in LEG_INDEX.items():
-            axs[int(legid/2), legid % 2].plot(time, torque[:, 3*legid:3*legid+3])
-            axs[int(legid/2), legid % 2].set_xlabel('time (s)')
+            axs[int(legid/2), legid % 2].plot(time, torque[:, 3*legid:3*legid+3])            
             axs[int(legid/2), legid % 2].set_ylabel('torque (Nm)')
             axs[int(legid/2), legid % 2].set_title(legname)
-            axs[0, 0].legend(['abad', 'hip', 'knee'])
+            axs[int(legid/2), legid % 2].grid()
+        axs[0, 0].legend(['abad', 'hip', 'knee'])
+        axs[1, 0].set_xlabel('time (s)')
+        axs[1, 1].set_xlabel('time (s)')
         # plt.show()
 
     def plot_GRF(self, time , GRF):
@@ -285,6 +289,7 @@ class Animator:
             axs[int(legid/2), legid % 2].plot(time, contact[:, legid])
             axs[int(legid/2), legid % 2].set_xlabel('time (s)')            
             axs[int(legid/2), legid % 2].set_title(legname)
+            axs[int(legid/2), legid % 2].grid()
         # plt.show()
 
     def plot_feasibility(self, time, feas):

@@ -191,23 +191,24 @@ def rearrange_traj_for_viz(wbtraj_lcmt):
         qJ = flip_hip_knee_direction(np.array(wbtraj_lcmt.qJ[k]))                
         wbtraj_lcmt.qJ[k] = list(flip_left_and_right(qJ))        
 
-def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact):
+def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact, flip=True):
     base = np.hstack((eul, pos, eulrate, vel))   
     
     # Rearrange leg order and reverse rotation for urdf file used in MPC
-    for k in range(len(jnt)):
-        jnt_k = jnt[k]
-        jnt_k = flip_hip_knee_direction(jnt_k)
-        jnt_k = flip_left_and_right(jnt_k)
-
-        pf_k = flip_left_and_right(pf[k])
-        vf_k = flip_left_and_right(vf[k])
-        c_k = flip_contact_left_right(contact[k])
-
-        jnt[k] = jnt_k
-        pf[k] = pf_k
-        vf[k] = vf_k
-        contact[k] = c_k
+    if flip:
+        for k in range(len(jnt)):
+            jnt_k = jnt[k]
+            jnt_k = flip_hip_knee_direction(jnt_k)
+            jnt_k = flip_left_and_right(jnt_k)
+    
+            pf_k = flip_left_and_right(pf[k])
+            vf_k = flip_left_and_right(vf[k])
+            c_k = flip_contact_left_right(contact[k])
+    
+            jnt[k] = jnt_k
+            pf[k] = pf_k
+            vf[k] = vf_k
+            contact[k] = c_k
     
     np.savetxt("data/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
     np.savetxt("data/body_state.csv", base, delimiter=",", fmt='%8.4f')
