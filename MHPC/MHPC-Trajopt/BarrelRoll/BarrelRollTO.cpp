@@ -56,10 +56,10 @@ void publish_trajectory(const deque<shared_ptr<WBSingleTrajectory_d>>& trajs,
 
 int main()
 {
-    /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */
-    const int num_phases = 4;
+    /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */    
     double dt = 0.01;
-    vectord switching_times{0.0, 0.15, 0.3, 0.7, 1.2};
+    vectord switching_times{0.0, 0.15, 0.3, 0.7, 1.0, 1.25, 1.45};
+    const int num_phases = switching_times.size() - 1;
     vector<int> horizons(num_phases);
     deque<shared_ptr<SinglePhase_d>> phases(num_phases);
     deque<shared_ptr<WBSingleTrajectory_d>> trajs(num_phases);
@@ -68,6 +68,8 @@ int main()
     contacts[1] << 0, 1, 0, 1; // FL, FR, HL, HR
     contacts[2].setZero();
     contacts[3].setOnes();
+    contacts[4].setZero();
+    contacts[5].setOnes();
 
     /* Create a whole-body model */
     const std::string urdf_filename = "../urdf/mini_cheetah_simple_correctedInertia.urdf";
@@ -212,7 +214,7 @@ int main()
         }
 
         // Touchdown constraint for landing phase
-        if (i == 2)
+        if (i == 2 || i==4)
         {
             AL_Paramd td_al_param;
             load_al_params(td_al_param, constraint_params_fname, "TD");
@@ -270,17 +272,33 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     eul[2] = 2*M_PI;
     euld[2] = 3.5*M_PI;
     vWorld[2] = -2.5;
-    // qJ[0] = 0.2; qJ[3] = -0.2; qJ[7] = 0.2; qJ[10] = -0.2;
     xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
     x_des[2] = xdes_phase_i;
 
-    // Desired final state for the last phase (stance stance)
+    // Desired final state for the fourth phase (stance)
     pos[2] = 0.18; 
     eul[2] = 2*M_PI;
     euld[2] = 0;
     vWorld[2] = 0;
     xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
     x_des[3] = xdes_phase_i;
+
+    // Desired final state for the fixth phase (flight)
+    pos[2] = 0.24; 
+    eul[2] = 2*M_PI;
+    euld[2] = 0;
+    vWorld[2] = 0;
+    qJ = Vec3d(0, 1.0, -2.0).replicate<4, 1>();
+    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
+    x_des[4] = xdes_phase_i;
+
+    // Desired final state for the fixth phase (stance)
+    pos[2] = 0.24; 
+    eul[2] = 2*M_PI;
+    euld[2] = 0;
+    vWorld[2] = 0;
+    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
+    x_des[5] = xdes_phase_i;
 }
 
 void load_cost_weights(vector<vectord> &weights, const string &fname)
@@ -289,7 +307,7 @@ void load_cost_weights(vector<vectord> &weights, const string &fname)
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(fname, pt);
 
-    for (int pidx = 0; pidx < 4; pidx++)
+    for (int pidx = 0; pidx < 6; pidx++)
     {
         string cost_phase = "cost_phase_" + to_string(pidx+1) + ".";
 
