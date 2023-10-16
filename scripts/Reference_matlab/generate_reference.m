@@ -1,26 +1,56 @@
-addpath("PreProcessedData");
+addpath(genpath("PreProcessedData/"));
 addpath("PostProcessedData/");
-%%
-tau_sz = size(body_states, 1);
-status_durations = zeros(tau_sz, 4);
-GRFs = zeros(tau_sz, 12);
-torques = zeros(tau_sz, 12);
+%% Lists of gaits
+clear
+Gaits{1} ="RunJump/";
+Gaits{2} = "MixedHopping/";
+Gaits{3} = "RunJump_ICRA23/";
+Gaits{4} = "Trot/";
+Gaits{5} = "Bound/";
+Gaits{6} = "Pace/";
+Gaits{7} = "FlyPace/";
+Gaits{8} = "Pronk/";
+Gaits{9} = "Stand/";
+Gaits{10} = "FlyTrot/";
+Gaits{11} = "Barrel/";
+gait_prepross_path = "PreProcessedData/";
 
-% Calculate contact status durations for each leg 
-dt = t(2) - t(1);
-for leg = 1:4
-    status_durations(:, leg) = Induce_status_duration_per_leg(contacts(:,leg), dt);
+gait_num = 11;
+gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
+
+gait_num = 4;
+gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
+gait2.body_states(:,3) = 2*pi;
+gait2.qJs(:,[2,3,5,6,8,9,11,12]) = -gait2.qJs(:,[2,3,5,6,8,9,11,12]);
+
+% gait = gait1;
+gait = combine_two_gaits(gait1, gait2);
+%%
+tau_sz = size(gait.body_states, 1);
+status_durations = zeros(tau_sz, 4);
+
+if ~isfield(gait,"torques")
+    gait.torques = zeros(tau_sz, 12);
 end
 
-% Calculate the GRF reference
-mass = 9; g = 10;
-for k = 1:tau_sz
-    F = [0, 0, mass * g / sum(contacts(k, :))];
-    for leg = 1: 4
-        if contacts(k, leg)
-            GRFs(k, 3*(leg-1)+1:3*leg) = F;
-        end
-    end    
+if ~isfield(gait,"GRFs")
+    gait.GRFs= zeros(tau_sz, 12);
+    % Calculate the GRF reference
+    mass = 9; g = 10;
+    for k = 1:tau_sz
+        F = [0, 0, mass * g / sum(gait.contacts(k, :))];
+        for leg = 1: 4
+            if gait.contacts(k, leg)
+                gait.GRFs(k, 3*(leg-1)+1:3*leg) = F;
+            end
+        end    
+    end
+end
+
+% Calculate contact status durations for each leg 
+dt = gait.t(2) - gait.t(1);
+for leg = 1:4
+    status_durations(:, leg) = Induce_status_duration_per_leg(gait.contacts(:,leg), dt);
 end
 
 %% Write to file
@@ -31,28 +61,25 @@ fprintf(fid, 'dt\n');
 fprintf(fid, '%4.3f\n', dt);
 for i = 1:tau_sz
     fprintf(fid, 'body_state \n');
-    fprintf_array(fid, body_states(i, :), '%6.3f ');       
+    fprintf_array(fid, gait.body_states(i, :), '%6.3f ');       
     
     fprintf(fid, 'qJ\n');
-    fprintf_array(fid, qJs(i, :), '%6.3f ');
+    fprintf_array(fid, gait.qJs(i, :), '%6.3f ');
 
     fprintf(fid, 'foot_placements\n');
-    fprintf_array(fid, foot_placements(i, :), '%6.3f ');
+    fprintf_array(fid, gait.foot_placements(i, :), '%6.3f ');
     
     fprintf(fid, 'foot_velocities\n');
-    fprintf_array(fid, foot_velocities(i, :), '%6.3f ');
-
-%     fprintf(fid, 'foot_height\n');
-%     fprintf_array(fid, foot_heights(i, :), '%6.3f ');
+    fprintf_array(fid, gait.foot_velocities(i, :), '%6.3f ');
 
     fprintf(fid, 'grf\n');
-    fprintf_array(fid, GRFs(i, :), '%6.3f ');
+    fprintf_array(fid, gait.GRFs(i, :), '%6.3f ');
 
     fprintf(fid, 'torque\n');
-    fprintf_array(fid, torques(i, :), '%6.3f ');   
+    fprintf_array(fid, gait.torques(i, :), '%6.3f ');   
 
     fprintf(fid, 'contact\n');
-    fprintf_array(fid, contacts(i, :), '%d ');
+    fprintf_array(fid, gait.contacts(i, :), '%d ');
 
     fprintf(fid, 'status_dur\n');
     fprintf_array(fid, status_durations(i, :), '%6.3f ');
