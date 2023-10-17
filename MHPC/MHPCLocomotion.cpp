@@ -283,7 +283,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         mpc_cmd.feedback.push_back(feedback_k_float);
         mpc_cmd.contacts.push_back(contact_k);
         mpc_cmd.statusTimes.push_back(statusDuration_k);
-        mpc_cmd.mpc_times.push_back(mpc_time + k * mpc_config.dt_mpc);
+        mpc_cmd.mpc_times.push_back(mpc_time + k * mpc_config.dt_wb);
     }
     mpc_cmd.solve_time = solve_time;
     mpc_lcm.publish("MHPC_COMMAND", &mpc_cmd);
