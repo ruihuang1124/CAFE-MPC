@@ -8,13 +8,11 @@ import pybullet_data as pd
 import math
 
 
-HIP_OFFSETS = np.array([[0.19, -0.049, 0],
-                          [0.19, 0.049, 0],
-                          [-0.19, -0.049, 0],                          
-                          [-0.19, 0.049, 0]])
+HIP_OFFSETS = np.array([[0.19, 0.049, 0],
+                        [0.19, -0.049, 0],
+                        [-0.19, 0.049, 0],                          
+                        [-0.19, -0.049, 0]])
 
-# Rotation direction of Knee and hip follows mini_cheetah/mini_cheetah.urdf
-# Warning: this convention is opposite the convention in mini_cheetah_simple_correctedInertia.urdf
 DEFAULT_JOINT_POSE = [0, -0.8, 1.6, 
                         0, -0.8, 1.6, 
                         0, -0.8, 1.6, 
@@ -23,9 +21,7 @@ DEFAULT_JOINT_POSE = [0, -0.8, 1.6,
 class MiniCheetah:     
     INIT_POS = [0,0,0.25]
     INIT_QUAT = [0,0,0,1]
-    EE_ID = [3, 7, 11, 15] # FR, FL, HR, HL
-                           # Note: 
-                           # This convention is different in mini_cheetah_simple_correctedInertia.urdf, which is FL, FR, HL, HR
+    EE_ID = [3, 7, 11, 15] # FL, FR, HL, HR                                                     
     JOINT_DAMPING = [0.1, 0.05, 0.01,
                      0.1, 0.05, 0.01,
                      0.1, 0.05, 0.01,
@@ -34,7 +30,9 @@ class MiniCheetah:
         # damping used by numerical IK solver
         self.pb = BulletClient(pybullet.DIRECT)
         self.pb.setAdditionalSearchPath(pd.getDataPath())
-        self.urdf_file = 'mini_cheetah/mini_cheetah.urdf'   # urdf file stored in pybullet_data
+        if urdf_file is None:
+            urdf_file = 'mini_cheetah/mini_cheetah.urdf'   # urdf file stored in pybullet_data
+        self.urdf_file = urdf_file
         self.robot = self.pb.loadURDF(self.urdf_file)
         self.set_pose(self.INIT_POS, self.INIT_QUAT, DEFAULT_JOINT_POSE)
 
@@ -76,7 +74,7 @@ class MiniCheetah:
     
     def getSideSign(self,leg_id):
         """Get if the leg is on the right (-1) or the left (+) of the robot"""
-        sideSigns = [-1,1,-1,1]
+        sideSigns = [1,-1,1,-1]
         return sideSigns[leg_id]
 
     def leg_fk(self, leg_id, leg_angles):

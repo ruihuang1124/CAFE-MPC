@@ -3,10 +3,10 @@ from gait_schedule import GaitSchedule
 from body_trajectory_plan import CoMTrajectoryPlanner
 
 # Default foothold locations w.r.t. the CoM
-DEFAULT_FOOTHOLDS = [np.array([0.22, -0.10, 0.]), 
-                     np.array([0.22, 0.10, 0.]),
-                     np.array([-0.18, -0.10, 0.]), 
-                     np.array([-0.18, 0.10, 0.])]
+DEFAULT_FOOTHOLDS = [np.array([0.22, 0.10, 0.]),        # FL
+                     np.array([0.22, -0.10, 0.]),       # FR
+                     np.array([-0.18, 0.10, 0.]),       # HL
+                     np.array([-0.18, -0.10, 0.])]      # HR
 KSCALE = 1
 class FootholdPlanner:
     def __init__(self, 

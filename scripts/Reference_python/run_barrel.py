@@ -5,7 +5,9 @@ from mini_cheetah_pybullet import MiniCheetah
 from barrel_roll import BarrelRoll
 
 # Create a pybullet model for ik computation
-robot = MiniCheetah()
+urdf_filename =  "../../urdf/mini_cheetah_simple_correctedInertia.urdf"
+robot = MiniCheetah(urdf_file=urdf_filename)
+robot.print_link_jnt_info()
 
 zd_stand = .1464
 zd_air = 0.35

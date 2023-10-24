@@ -22,8 +22,8 @@ class QuadState:
 
 
 # Desired Trajectories
-xinit, yinit, zinit = 0.0, 0.0, 0.28
-vx_des, vy_des, z_des = 0.5, 0.0, 0.28
+xinit, yinit, zinit = 0.0, 0.0, 0.25
+vx_des, vy_des, z_des = 0.1, 0.0, 0.25
 swingHeight = 0.1
 
 planning_horizon = 5.0
@@ -32,7 +32,7 @@ dt = 0.01
 N = round(planning_horizon/dt) + 1
 
 # Desired Gait
-periodicGait = Trot
+periodicGait = FlyTrot
 
 # Setup the planners
 reference_planner = ReferenceManager()
@@ -45,7 +45,9 @@ reference_planner.computeReferenceTrajectoryOnce()
 modeSchedule = reference_planner.getModeSchedule()
 
 # Create a pybullet model for ik computation
-robot = MiniCheetah()
+# Create a pybullet model for ik computation
+urdf_filename =  "../../urdf/mini_cheetah_simple_correctedInertia.urdf"
+robot = MiniCheetah(urdf_file=urdf_filename)
 
 pos_tau, vel_tau = [], []
 z_tau, pf_tau, vf_tau = [], [], []
@@ -54,6 +56,7 @@ contact_tau = []
 eul_tau, eulrate_tau = [],[]
 time = []
 jnt_tau = []
+jntvel_tau = []
 for k in range(N):
     t = k * dt
     pos = reference_planner.getCoMPositionAtTime(t)
@@ -72,19 +75,22 @@ for k in range(N):
         z[l] = pf[l][2]
     eul = np.array([0,0,0])
     jnt_pos = robot.ik(pos, eul, np.hstack(pf))
+
     pos_tau.append(pos)
     vel_tau.append(vel)
     eul_tau.append(eul)
     eulrate_tau.append(np.array([0,0,0]))
-    contact_tau.append(contact)
+    jnt_tau.append(jnt_pos)    
+    jntvel_tau.append(np.zeros(12))
     pf_tau.append(np.hstack(pf))
-    z_tau.append(z)
     vf_tau.append(np.hstack(vf))
-    jnt_tau.append(jnt_pos)
+    contact_tau.append(contact)    
     time.append(t)
 
-# utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
-utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau)
+utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, 
+                         pf_tau, vf_tau, jnt_tau, jntvel_tau, contact_tau)
+utils.publish_trajectory_lcm(time, pos_tau, eul_tau, vel_tau, eulrate_tau, 
+                             jnt_tau, jntvel_tau, contact_tau)
 
 # utils.plot_com_pos(time, pos_tau)
 # utils.plot_com_vel(time, vel_tau)

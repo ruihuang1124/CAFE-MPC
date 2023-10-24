@@ -18,7 +18,7 @@ int main()
     std::string quad_reference_file("../Reference/Data/");
     quad_reference_file.append(config.referenceFileName);
     quad_reference_file.append("/quad_reference.csv");
-    quad_ref->load_top_level_data(quad_reference_file, true);
+    quad_ref->load_top_level_data(quad_reference_file, false);
 
     MHPCProblem<double> problem;
     MHPCProblemData<double> pdata;

@@ -13,7 +13,6 @@ def approx_geq(a, b):
         return True
     return False
 
-from cgi import print_arguments
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -96,7 +95,7 @@ def plot_jnt_position(time, jnt_pos_tau, leg):
     plt.show()
 
 
-LEG_INDEX = {'FR': 0, 'FL': 1, 'HR': 2, 'HL': 3}
+LEG_INDEX = {'FL': 0, 'FR': 1, 'HL': 2, 'HR': 3}
 def plot_swing_height(time, z_tau):
     """ Plot foot positions w.r.t. time
     """
@@ -165,11 +164,6 @@ def animate_footPositions_and_CoM(leg, pf_tau, p_tau):
     ani = animation.FuncAnimation(fig=fig, func=update, frames=len(pf_x_array), interval=100)
     plt.show()
 
-def flip_hip_knee_direction(jnt_pos):
-    jnt_pos[np.array([2,5,8,11])] *= -1.0
-    jnt_pos[np.array([1,4,7,10])] *= -1.0 
-    return jnt_pos
-
 def flip_left_and_right(vec12):
     vec12_flipped = vec12.copy()
     vec12_flipped[np.array([0,1,2])] = vec12[np.array([3,4,5])]
@@ -185,53 +179,37 @@ def flip_contact_left_right(contact):
     c_flipped[2] = contact[3]
     c_flipped[3] = contact[2]
     return c_flipped
+      
 
-def rearrange_traj_for_viz(wbtraj_lcmt):
-    for k in range(wbtraj_lcmt.sz):                
-        qJ = flip_hip_knee_direction(np.array(wbtraj_lcmt.qJ[k]))                
-        wbtraj_lcmt.qJ[k] = list(flip_left_and_right(qJ))        
-
-def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, jnt, contact, flip=True):
+def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, qJ, qJd, contact):
     base = np.hstack((eul, pos, eulrate, vel))   
-    
-    # Rearrange leg order and reverse rotation for urdf file used in MPC
-    if flip:
-        for k in range(len(jnt)):
-            jnt_k = jnt[k]
-            jnt_k = flip_hip_knee_direction(jnt_k)
-            jnt_k = flip_left_and_right(jnt_k)
-    
-            pf_k = flip_left_and_right(pf[k])
-            vf_k = flip_left_and_right(vf[k])
-            c_k = flip_contact_left_right(contact[k])
-    
-            jnt[k] = jnt_k
-            pf[k] = pf_k
-            vf[k] = vf_k
-            contact[k] = c_k
-    
     np.savetxt("data/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
     np.savetxt("data/body_state.csv", base, delimiter=",", fmt='%8.4f')
     np.savetxt("data/ee_pos.csv", np.asarray(pf), delimiter=",", fmt='%8.4f')
-    np.savetxt("data/jnt.csv", np.asarray(jnt), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/jnt.csv", np.asarray(qJ), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/jntvel.csv", np.asarray(qJd), delimiter=",", fmt='%8.4f')    
     np.savetxt("data/contact.csv", np.asarray(contact), delimiter=",", fmt='%u')
     np.savetxt("data/ee_vel.csv", np.asarray(vf), delimiter=",", fmt='%8.4f')
 
-def publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau, contact_tau):
+def publish_trajectory_lcm(time, pos_tau, eul_tau, vel_tau, eulrate_tau, 
+                           jnt_tau, jntvel_tau, contact_tau):
     lcm_ = lcm.LCM()
     wbtraj_lcmt = wbTraj_lcmt()
-    traj_sz = len(pos_tau)
-    wbtraj_lcmt.sz = len(pos_tau)
+    traj_sz = len(time)
+    wbtraj_lcmt.sz = traj_sz
+    wbtraj_lcmt.wb_sz = traj_sz
     for k in range(traj_sz):
+        wbtraj_lcmt.time.append(time[k])
         wbtraj_lcmt.pos.append(list(pos_tau[k]))
         wbtraj_lcmt.eul.append(list(eul_tau[k]))
         wbtraj_lcmt.vWorld.append(list(vel_tau[k]))
         wbtraj_lcmt.eulrate.append(list(eulrate_tau[k]))
         wbtraj_lcmt.qJ.append(list(jnt_tau[k]))
-        wbtraj_lcmt.qJd.append([0]*12)
+        wbtraj_lcmt.qJd.append(list(jntvel_tau[k]))
         wbtraj_lcmt.torque.append([0]*12)
         wbtraj_lcmt.contact.append(list(contact_tau[k]))
-    
-    rearrange_traj_for_viz(wbtraj_lcmt)
+        wbtraj_lcmt.hg.append([0, 0, 0])
+        wbtraj_lcmt.dhg.append([0, 0, 0])
+        wbtraj_lcmt.defect.append(0)    
 
     lcm_.publish("visualize_wb_traj", wbtraj_lcmt.encode())

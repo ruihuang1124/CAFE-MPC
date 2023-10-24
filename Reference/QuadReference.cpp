@@ -362,10 +362,10 @@ void QuadReference::reorder_leg_dependent_states()
         
         state_reordered.status_dur << state_org.status_dur[1], state_org.status_dur[0], state_org.status_dur[3], state_org.status_dur[2];
 
-        state_reordered.qJ(Eigen::seqN(1,4,3)) = -state_reordered.qJ(Eigen::seqN(1,4,3)); 
-        state_reordered.qJ(Eigen::seqN(2,4,3)) = -state_reordered.qJ(Eigen::seqN(2,4,3));         
-        state_reordered.torque(Eigen::seqN(1,4,3)) = -state_reordered.torque(Eigen::seqN(1,4,3)); 
-        state_reordered.torque(Eigen::seqN(2,4,3)) = -state_reordered.torque(Eigen::seqN(2,4,3)); 
+        // state_reordered.qJ(Eigen::seqN(1,4,3)) = -state_reordered.qJ(Eigen::seqN(1,4,3)); 
+        // state_reordered.qJ(Eigen::seqN(2,4,3)) = -state_reordered.qJ(Eigen::seqN(2,4,3));         
+        // state_reordered.torque(Eigen::seqN(1,4,3)) = -state_reordered.torque(Eigen::seqN(1,4,3)); 
+        // state_reordered.torque(Eigen::seqN(2,4,3)) = -state_reordered.torque(Eigen::seqN(2,4,3)); 
 
         tp_data[i].qJ = state_reordered.qJ;
         tp_data[i].qJd = state_reordered.qJd;

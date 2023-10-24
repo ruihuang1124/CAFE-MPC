@@ -71,9 +71,9 @@ void MHPCLocomotion<T>::initialize()
     pos.setZero();
     eulrate.setZero();
     vWorld.setZero();
-    // qJ = Vec3<T>(0, 0.8, -1.6).template replicate<4, 1>();
+    // qJ = Vec3<T>(0, -0.8, 1.6).template replicate<4, 1>();
     // pos[2] = 0.2486;
-     qJ = Vec3<T>(0, 1.2, -2.4).template replicate<4, 1>();
+     qJ = Vec3<T>(0, -1.2, 2.4).template replicate<4, 1>();
     pos[2] = 0.1464;
     qJd.setZero();
     x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
@@ -251,8 +251,8 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         const Vec12<float>&Qu_k = trajs[pidx]->Qu[k_rel].template cast<float>();
         const MatMN<float, 12, 12>&Quu_k = trajs[pidx]->Quu[k_rel].template cast<float>();
         const MatMN<float, 12, 36>&Qux_k = trajs[pidx]->Qux[k_rel].template cast<float>();
-        const MatMN<float, 12, 36>&K_k = trajs[pidx]->K[k_rel].template cast<float>();
-
+        const MatMN<float, 12, 36>&K_k = trajs[pidx]->K[k_rel].template cast<float>();        
+        
         std::copy(u_k.begin(), u_k.end(), torque_k_float.data());
         std::copy(x_k.begin(), x_k.begin() + 3, pos_k_float.data());
         std::copy(x_k.begin() + 3, x_k.begin() + 6, eul_k_float.data());

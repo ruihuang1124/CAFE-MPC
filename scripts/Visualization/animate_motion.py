@@ -16,7 +16,6 @@ robot = MiniCheetah(urdf_filename)
 animator = Animator(robot)
 animator.initialization()
 
-
 def visualize_motion_lcm_handler(channel, data):
     print("received visualization lcm message")    
     msg = wbTraj_lcmt.decode(data)
@@ -35,7 +34,7 @@ def visualize_motion_lcm_handler(channel, data):
                 animator.hide_legs()
             else:
                 animator.recover_legs()     
-            time.sleep(0.001)               
+            time.sleep(0.01)               
     
 
 lc = lcm.LCM()

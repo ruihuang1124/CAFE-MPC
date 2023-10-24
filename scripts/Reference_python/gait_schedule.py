@@ -12,7 +12,7 @@ class PeriodicGait:
 Stance = PeriodicGait()
 modeSeqStr = ["Stance"]
 Stance.modeSequence = quad_mode.stringSeq2modeNumSeq(modeSeqStr)
-Stance.switchingTimes = np.array([0.0, 0.1])
+Stance.switchingTimes = np.array([0.0, 0.05])
 
 Trot = PeriodicGait()
 modeSeqStr = ["FL-HR", "FR-HL"]

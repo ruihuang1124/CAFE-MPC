@@ -51,10 +51,9 @@ int main()
     eul.setZero();
     vel.setZero();
     eulrate.setZero();
-    qJ = Vec3<double>(0, 1.2, -2.4).replicate<4, 1>();
+    qJ = Vec3<double>(0, -1.2, 2.4).replicate<4, 1>();
     qJd.setZero();
-    pos[2] = 0.1464;
-    // eulrate[2] = 2*M_PI/0.4;
+    pos[2] = 0.1464;    
     xinit << pos, eul, qJ, vel, eulrate, qJd;
 
     /* DDP setting */

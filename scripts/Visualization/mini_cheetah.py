@@ -12,11 +12,11 @@ HIP_OFFSETS = np.array([[0.19, 0.049, 0],
                         [-0.19, -0.049, 0]])
 
 class MiniCheetah:
-    DEFAULT_JOINT_POSE = [0, 0.8, -1.6, 
-                        0, 0.8, -1.6, 
-                        0, 0.8, -1.6, 
-                        0, 0.8, -1.6]    # for  mini_cheetah_simple_correctedInertia.urdf 
-                                         # rotation direction for hip and knee needs to be flipped for mini_cheetah/mini_cheetah.urdf in pybullet_data
+    DEFAULT_JOINT_POSE = [0, -0.8, 1.6, 
+                        0, -0.8, 1.6, 
+                        0, -0.8, 1.6, 
+                        0, -0.8, 1.6]    # for  mini_cheetah_simple_correctedInertia.urdf 
+                                                                 
     INIT_POS = [0,0,0.25]
     INIT_QUAT = [0,0,0,1]
     EE_ID = [3, 7, 11, 15] # FL, FR, HL, HR for mini_cheetah_simple_correctedInertia.urdf 
