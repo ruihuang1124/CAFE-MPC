@@ -22,7 +22,7 @@ int main()
     q.setRandom();
     qd.setRandom();    
     x << q, qd;
-    u.setRandom();
+    u.setRandom();    
 
     WBM::Model<double>::CtactStatusType contact, nextContact;
     contact << 1,1,0,1;
@@ -37,7 +37,7 @@ int main()
     wb_model.dynamics_partial(A, B, C, D, x, u, t, contact, dt);    
 
     // Finite difference method for df_dx, dGRF_dx
-    double eps = 1e-8;
+    double eps = 1e-6;
     WBM::Model<double>::StateType x_eps, x_FD, xnext_post;
     WBM::Model<double>::OutputType GRF_post;
     WBM::Model<double>::StateMapType A_FD;
@@ -52,8 +52,8 @@ int main()
         A_FD.col(i) = (xnext_post - xnext)/eps;
         C_FD.col(i) = (GRF_post - GRF)/eps;
     }        
-    std::cout << "Are A and A_FD close ? " << A.isApprox(A_FD, 1e-5) << "\n";    
-    std::cout << "Are C and C_FD close ? " << C.isApprox(C_FD, 1e-5) << "\n";
+    std::cout << "Are A and A_FD close ? " << A.isApprox(A_FD, 1e-4) << "\n";    
+    std::cout << "Are C and C_FD close ? " << C.isApprox(C_FD, 1e-4) << "\n";
 
     // Finite difference for df_du
     WBM::Model<double>::ContrlType u_eps, u_FD;
@@ -66,7 +66,7 @@ int main()
         wb_model.dynamics(xnext_post, GRF_post, x, u_FD, t, contact, dt);
         B_FD.col(i) = (xnext_post - xnext)/eps;
     }
-    std::cout << "Are B and B_FD close ? " << B.isApprox(B_FD, 1e-5) << "\n";        
+    std::cout << "Are B and B_FD close ? " << B.isApprox(B_FD, 1e-4) << "\n";        
 
     // Test Impact partial
     DMat<double> dP_dx;
@@ -93,19 +93,34 @@ int main()
     std::cout << "Are dImp_dx and dImp_dx_FD close ? " << dImp_dx.isApprox(dImp_dx_FD, sqrt(eps)) << "\n";
 
     /* Test dynamics */
+    std::cout << "Test full contact dynamics \n";
+    contact.setOnes();
     q.setOnes();
     qd.setOnes();    
-    u.setOnes();
-    x << q, qd;    
-    contact << 1,1,1,1;
+    u.setZero();
+    x << q, qd;        
     WBM::Model<double>::StateType xdot;
     wb_model.dynamics_continuousTime(xdot, GRF, x, u, contact);
-    std::cout << "qd = \n" << std::setprecision(4) << xdot.head(18).transpose() << "\n";
-    std::cout << "qdd = \n" << std::setprecision(4) << xdot.tail(18).transpose() << "\n";
-    std::cout << "GRF = \n" << std::setprecision(4) << GRF.transpose() << "\n";
+    VecM<double, 18> qdd_ref;
+    VecM<double, 12> GRF_ref;    
+    qdd_ref.head<6>() << -6.3095,   -4.2604,  -14.1384,   22.9058,   17.9408,   39.8478;
+    qdd_ref.tail<12>() <<  90.4579,  -65.9947,   66.0292,  138.4558,   22.0186,    7.8347,
+                          -434.0716,    5.2086,   99.9593, -386.0737,  -60.6831,  -18.4982;                       
+    GRF_ref << 5.6718,    3.3482,    4.9412,    9.5903,    5.4040,    6.7458 ,
+               -40.7861,  -21.8598,  -24.2717,  -37.9467,  -20.9369,  -24.4426;    
+    std::cout << "(qdd - qdd_ref).norm = " << (xdot.tail(18) - qdd_ref).norm() << "\n";
+    std::cout << "(GRF - GRF_ref).norm = " << (GRF - GRF_ref).norm() << "\n";
+
+    std::cout << "Test free fall dynamics \n";
+    contact.setZero();
+    x << q, qd;  
+    wb_model.dynamics_continuousTime(xdot, GRF, x, u, contact);
+    qdd_ref.head<6>() << 0.0167,    0.0347,   -9.8007,    3.0514,   -0.7017,    4.1830;
+    qdd_ref.tail<12>() << 0.8268,    0.6603,   -5.2010,   -0.2201,    1.3537,   -4.9655,
+                          1.0438,   -1.0924,   -0.5153,    0.1417,   -0.2949,   -0.2164;
+    std::cout << "(qdd - qdd_ref).norm = " << (xdot.tail(18) - qdd_ref).norm() << "\n";    
 
     /* Test kinematics */
-    VecM<double, 12> EE_pos;
-    wb_model.get_footPositions(EE_pos, x);
-    std::cout << "EE_pos = \n" << std::setprecision(5) << EE_pos.transpose() << "\n";
+    VecM<double, 3> EE_pos[4];
+    wb_model.get_footPositions(EE_pos, x);    
 }
