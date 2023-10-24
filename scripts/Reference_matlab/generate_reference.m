@@ -18,12 +18,17 @@ gait_prepross_path = "PreProcessedData/";
 gait_num = 11;
 gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
 
-gait_num = 4;
+gait_num = 10;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
-gait2.body_states(:,3) = 2*pi;
-gait2.qJs(:,[2,3,5,6,8,9,11,12]) = -gait2.qJs(:,[2,3,5,6,8,9,11,12]);
 
-% gait = gait1;
+% Save only the regular locomotion gait
+% gait = gait2;
+
+% Combine barrel roll and locomotion gaits
+% Offset the x,y positions in gait 2 to start at the end of gait 1
+gait2.body_states(:,5) = gait2.body_states(:,5) + gait1.body_states(end,5);
+gait2.foot_placements(:,[2,5,8,11]) = gait2.foot_placements(:,[2,5,8,11]) + gait1.foot_placements(end, [2,5,8,11]);
+gait2.body_states(:,3) = 2*pi;
 gait = combine_two_gaits(gait1, gait2);
 %%
 tau_sz = size(gait.body_states, 1);
@@ -63,8 +68,13 @@ for i = 1:tau_sz
     fprintf(fid, 'body_state \n');
     fprintf_array(fid, gait.body_states(i, :), '%6.3f ');       
     
-    fprintf(fid, 'qJ\n');
+    fprintf(fid, 'jnt_angle\n');
     fprintf_array(fid, gait.qJs(i, :), '%6.3f ');
+
+    if isfield(gait, "qJds")
+        fprintf(fid, 'jnt_vel\n');
+        fprintf_array(fid, gait.qJds(i, :), '%6.3f ');
+    end
 
     fprintf(fid, 'foot_placements\n');
     fprintf_array(fid, gait.foot_placements(i, :), '%6.3f ');
