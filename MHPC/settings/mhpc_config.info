@@ -1,12 +1,12 @@
 config
 {
-    plan_dur_wb             0.30
+    plan_dur_wb             0.25
     plan_dur_srb            0.60
     dt_mpc                  0.02
     dt_wb                   0.01
-    dt_srb                  0.02
+    dt_srb                  0.05
     BG_alpha                10.0    
-    referenceFile           barrel_trot
+    referenceFile           barrel_flytrot
     costFile                MHPC/settings/cost_weights_barrel.JSON
     constraintParamFile     MHPC/settings/constraint_params_barrel.info
 }
