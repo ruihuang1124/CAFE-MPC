@@ -150,6 +150,7 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
     
 
     // Loop through each line of the file
+    int n = 0;
     while (getline(fstrm, line))
     {        
         if (line == "dt")
@@ -177,7 +178,7 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
             continue;  
         }    
 
-        if (line.find("qJ") != std::string::npos)
+        if (line.find("jnt_angle") != std::string::npos)
         {
             getline(fstrm, line);           // Get the next line
             std::stringstream lstrm(line);  // Break the line to words (default delimeter is " ")
@@ -190,6 +191,38 @@ void QuadReference::load_top_level_data(const std::string& fname, bool reorder)
                 if (i >= 3 * nLegs) break;
             }    
 
+            continue;
+        }    
+
+        if (line.find("jnt_vel") != std::string::npos)
+        {
+            getline(fstrm, line);           // Get the next line
+            std::stringstream lstrm(line);  // Break the line to words (default delimeter is " ")
+
+            int i = 0;
+            while (lstrm >> word)
+            {                
+                quad_state.qJd[i] = std::stof(word);
+                i++;
+                if (i >= 3 * nLegs) break;
+            }    
+            n++;            
+            continue;
+        }       
+
+        if (line.find("torque") != std::string::npos)
+        {
+            getline(fstrm, line);           // Get the next line
+            std::stringstream lstrm(line);  // Break the line to words (default delimeter is " ")
+
+            int i = 0;
+            while (lstrm >> word)
+            {                
+                quad_state.torque[i] = std::stof(word);
+                i++;
+                if (i >= 3 * nLegs) break;
+            }    
+            n++;            
             continue;
         }       
        
