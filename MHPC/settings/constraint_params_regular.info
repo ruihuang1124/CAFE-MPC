@@ -12,6 +12,20 @@ Torque_ReB
     eps             0.01
 }
 
+JointSpeed_ReB
+{
+    delta           0.1
+    delta_min       0.1
+    eps             0.1
+}
+
+MinHeight_ReB
+{
+    delta           0.01
+    delta_min       0.01
+    eps             0.1
+}
+
 TD_AL
 {
     sigma           50
