@@ -45,8 +45,8 @@ void MHPCLocomotion<T>::initialize()
     opt_problem.pretty_print();
 #endif
 
-    mpc_time = 0;
-    mpc_time_prev = 0;
+    // mpc_time = 0;
+    // mpc_time_prev = 0;
 
     // Assemble the multi-phase probelm and solve it with MSDDP
     MultiPhaseDDP<T> solver;
@@ -66,17 +66,19 @@ void MHPCLocomotion<T>::initialize()
         phase->print();
     }
 
-    // set the initial condition
-    eul.setZero();
-    pos.setZero();
-    eulrate.setZero();
-    vWorld.setZero();
+    // // set the initial condition
+    // eul.setZero();
+    // pos.setZero();
+    // eulrate.setZero();
+    // vWorld.setZero();
     // qJ = Vec3<T>(0, -0.8, 1.6).template replicate<4, 1>();
     // pos[2] = 0.2486;
-     qJ = Vec3<T>(0, -1.2, 2.4).template replicate<4, 1>();
-    pos[2] = 0.1464;
-    qJd.setZero();
-    x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
+    // // qJ = Vec3<T>(0, -1.2, 2.4).template replicate<4, 1>();
+    // // pos[2] = 0.1464;
+    // // qJ = Vec3<T>(0, -1.0, 2.0).template replicate<4, 1>();
+    // // pos[2] = 0.21828;
+    // qJd.setZero();
+    // x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
     solver.set_initial_condition(x_init_wb);
 
 #ifdef TIME_BENCHMARK
@@ -121,17 +123,7 @@ void MHPCLocomotion<T>::update()
 
 #ifdef DEBUG_MODE
     opt_problem.pretty_print();
-#endif
-
-    /* update current state*/
-    Eigen::Map<VecM<float, 3>> pos_map(mpc_data.pos);
-    Eigen::Map<VecM<float, 3>> eul_map(mpc_data.eul);
-    Eigen::Map<VecM<float, 12>> qJ_map(mpc_data.qJ);
-    Eigen::Map<VecM<float, 3>> vWorld_map(mpc_data.vWorld);
-    Eigen::Map<VecM<float, 3>> eulrate_map(mpc_data.eulrate);
-    Eigen::Map<VecM<float, 12>> qJd_map(mpc_data.qJd);
-    x_init_wb << pos_map.cast<T>(), eul_map.cast<T>(), qJ_map.cast<T>(),
-        vWorld_map.cast<T>(), eulrate_map.cast<T>(), qJd_map.cast<T>();
+#endif    
 
     /* build solver and solve the TO problem */
     MultiPhaseDDP<T> solver;
@@ -176,21 +168,30 @@ void MHPCLocomotion<T>::mpcdata_lcm_handler(const lcm::ReceiveBuffer *rbuf, cons
     printf("Received resolving request\n");
     printf(RESET);
 
-    if (msg->reset_mpc)
-    {
-        ddp_setting.MS = msg->MS;
-        mpc_mutex.unlock();
-        initialize();
-        return;
-    }
-
-    std::memcpy(&mpc_data, msg, sizeof(mpc_data));
+    /* update current state*/
+    Eigen::Map<const VecM<float, 3>> pos_map(msg->pos);
+    Eigen::Map<const VecM<float, 3>> eul_map(msg->eul);
+    Eigen::Map<const VecM<float, 12>> qJ_map(msg->qJ);
+    Eigen::Map<const VecM<float, 3>> vWorld_map(msg->vWorld);
+    Eigen::Map<const VecM<float, 3>> eulrate_map(msg->eulrate);
+    Eigen::Map<const VecM<float, 12>> qJd_map(msg->qJd);
+    x_init_wb << pos_map.cast<T>(), eul_map.cast<T>(), qJ_map.cast<T>(),
+        vWorld_map.cast<T>(), eulrate_map.cast<T>(), qJd_map.cast<T>();
     mpc_time_prev = mpc_time;
-    mpc_time = mpc_data.mpctime;
-
+    mpc_time = msg->mpctime;
+    
     mpc_mutex.unlock();
-    std::thread solve_mpc_thread(&MHPCLocomotion::update, this);
-    solve_mpc_thread.detach(); // detach the thread from the main thread. The thread would exit once it completes
+
+    if (is_first_mpc)
+    {        
+        initialize();
+        is_first_mpc = false;
+    }else
+    {        
+        std::thread solve_mpc_thread(&MHPCLocomotion::update, this);
+        solve_mpc_thread.detach(); // detach the thread from the main thread. The thread would exit once it completes    
+    }
+    
 }
 
 template <typename T>

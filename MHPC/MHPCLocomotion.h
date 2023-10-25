@@ -29,6 +29,8 @@ public:
             return;
         }       
 
+        is_first_mpc = true;
+
         // Subscribe to MHPC channel
         mpc_lcm.subscribe("MHPC_DATA", &MHPCLocomotion::mpcdata_lcm_handler, this);               
     }
@@ -52,6 +54,7 @@ public:
     T mpc_time;
     T mpc_time_prev;
     int mpc_iter;
+    bool is_first_mpc;
     
     DVec<T> xinit;
     VecM<T, WBM::xs> x_init_wb;    

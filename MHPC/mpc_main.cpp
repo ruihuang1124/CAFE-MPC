@@ -3,6 +3,6 @@
 int main()
 {
     MHPCLocomotion<double> mpc;    
-    mpc.initialize();
+    // mpc.initialize();
     mpc.run();
 }
