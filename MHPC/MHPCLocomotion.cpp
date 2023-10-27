@@ -66,19 +66,6 @@ void MHPCLocomotion<T>::initialize()
         phase->print();
     }
 
-    // // set the initial condition
-    // eul.setZero();
-    // pos.setZero();
-    // eulrate.setZero();
-    // vWorld.setZero();
-    // qJ = Vec3<T>(0, -0.8, 1.6).template replicate<4, 1>();
-    // pos[2] = 0.2486;
-    // // qJ = Vec3<T>(0, -1.2, 2.4).template replicate<4, 1>();
-    // // pos[2] = 0.1464;
-    // // qJ = Vec3<T>(0, -1.0, 2.0).template replicate<4, 1>();
-    // // pos[2] = 0.21828;
-    // qJd.setZero();
-    // x_init_wb << pos, eul, qJ, vWorld, eulrate, qJd;
     solver.set_initial_condition(x_init_wb);
 
 #ifdef TIME_BENCHMARK
@@ -200,7 +187,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 8; // use 4 controls than control duration to account for delay
+    nControlSteps = 5; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
