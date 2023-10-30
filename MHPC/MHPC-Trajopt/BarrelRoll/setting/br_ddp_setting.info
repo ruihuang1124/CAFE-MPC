@@ -7,7 +7,7 @@ ddp
     update_ReB              1
     update_regularization   4
     max_DDP_iter            10
-    max_AL_iter             25
+    max_AL_iter             30
     max_DDP_iter_runtime    1
     max_AL_iter_runtime     3
     cost_thresh             1e-2

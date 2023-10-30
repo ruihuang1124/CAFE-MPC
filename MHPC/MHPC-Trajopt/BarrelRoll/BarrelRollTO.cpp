@@ -62,7 +62,7 @@ int main()
 {
     /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */    
     double dt = 0.01;
-    vectord switching_times{0.0, 0.18, 0.35, 0.8, 0.9, 1.1, 1.3};
+    vectord switching_times{0.0, 0.12, 0.33, 0.7, 0.8, 1.0, 1.2};
     const int num_phases = switching_times.size() - 1;
     vector<int> horizons(num_phases);
     deque<shared_ptr<SinglePhase_d>> phases(num_phases);
@@ -213,7 +213,7 @@ int main()
         wbMinHeightConstraint->create_data();
         wbMinHeightConstraint->initialize_params(minheight_reb_param);
         phase->add_pathConstraint(wbMinHeightConstraint);
-
+        
 
         /* Set GRF constraints if any*/
         if (contacts[i].cwiseEqual(1).any())
@@ -268,36 +268,39 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     qJd.setZero();
 
     // Desired final state for the first phase  (stance) 
-    pos[2] = 0.18; 
-    eul[2] = M_PI/3;
-    euld[2] = 2.0*M_PI;
-    vWorld[2] = 1.0;
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[0] = xdes_phase_i;
+    pos << 0, -0.15, 0.26; 
+    eul << 0, 0, M_PI/6;
+    euld[2] = 3.0*M_PI;
+    vWorld << 0, -1.0, 2.0;    
+    x_des[0] << pos, eul, qJ, vWorld, euld, qJd;
 
     // Desired final state for the second phase (right stance)
-    pos[2] = 0.32; 
-    eul[2] = 0.8*M_PI;
-    euld[2] = 4.0*M_PI;
-    vWorld[2] = 3.2;
-    qJ << 0, -1.2, 2.4, 0, -0.5, 1.0, 0, -1.2, 2.4, 0, -0.5, 1.0;
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[1] = xdes_phase_i;
+    pos << 0, -0.30, 0.33; 
+    eul << 0, 0, 0.5*M_PI;
+    euld << 0, 0, 3.0*M_PI;
+    vWorld << 0, -1.0, 2.0;
+    qJ << M_PI/6, -1.0, 2.0, 
+          -M_PI/5, -0.5, 1.0, 
+          M_PI/6, -1.0, 2.0, 
+          -M_PI/5, -0.5, 1.0;
+    x_des[1] << pos, eul, qJ, vWorld, euld, qJd;     
 
     // Desired final state for the third phase (air)
-    pos[2] = 0.25; 
-    eul[2] = 2.1*M_PI;
-    euld[2] = 3.5*M_PI;
-    vWorld[2] = -2.5;
-    qJ << 0.15, -1.0, 2.0, -0.15, -1.0, 2.0, 0.15, -1.0, 2.0, 0.15, -1.0, 2.0;
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[2] = xdes_phase_i;
+    pos << 0, -0.4, 0.22;
+    eul << 0, 0, 2.0*M_PI;
+    euld << 0, 0, 3.0*M_PI;
+    vWorld << 0, 0, -2.5;
+    qJ << 0.3, -1.1, 2.2, 
+         -0.3, -1.1, 2.2, 
+         0.3, -1.1, 2.2, 
+         -0.3, -1.1, 2.2;
+    x_des[2] << pos, eul, qJ, vWorld, euld, qJd;     
 
     // Desired final state for the fourth phase (stance)
     pos[2] = 0.25; 
     eul[2] = 2*M_PI;
     euld[2] = 0;
-    vWorld[2] = 0;
+    vWorld[2] = 0;    
     x_des[3] << pos, eul, qJ, vWorld, euld, qJd;
 
     // Desired final state for the fixth phase (flight)
