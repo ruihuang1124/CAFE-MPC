@@ -194,6 +194,16 @@ int main()
         jointSpeedLimit->initialize_params(jointvel_reb_param);
         phase->add_pathConstraint(jointSpeedLimit);
 
+        /* Joint limit */
+        REB_Paramd joint_reb_param;
+        load_reb_params(joint_reb_param, constraint_params_fname, "Joint");
+        shared_ptr<BarrelRoll::JointLimit<double>> jointLimit;
+        jointLimit = std::make_shared<BarrelRoll::JointLimit<double>>();
+        jointLimit->update_horizon_len(horizons[i]);
+        jointLimit->create_data();
+        jointLimit->initialize_params(joint_reb_param);
+        phase->add_pathConstraint(jointLimit);
+
         /* Minimum Height constraint */
         REB_Paramd minheight_reb_param;
         load_reb_params(minheight_reb_param, constraint_params_fname, "MinHeight");
@@ -203,6 +213,7 @@ int main()
         wbMinHeightConstraint->create_data();
         wbMinHeightConstraint->initialize_params(minheight_reb_param);
         phase->add_pathConstraint(wbMinHeightConstraint);
+
 
         /* Set GRF constraints if any*/
         if (contacts[i].cwiseEqual(1).any())
@@ -287,8 +298,7 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     eul[2] = 2*M_PI;
     euld[2] = 0;
     vWorld[2] = 0;
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[3] = xdes_phase_i;
+    x_des[3] << pos, eul, qJ, vWorld, euld, qJd;
 
     // Desired final state for the fixth phase (flight)
     pos[2] = 0.25; 
@@ -296,16 +306,14 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     euld[2] = 0;
     vWorld[2] = 0;
     qJ = Vec3d(0, -1.0, 2.0).replicate<4, 1>();
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[4] = xdes_phase_i;
+    x_des[4] << pos, eul, qJ, vWorld, euld, qJd;     
 
     // Desired final state for the fixth phase (stance)
     pos[2] = 0.25; 
     eul[2] = 2*M_PI;
     euld[2] = 0;
     vWorld[2] = 0;
-    xdes_phase_i << pos, eul, qJ, vWorld, euld, qJd;
-    x_des[5] = xdes_phase_i;
+    x_des[5] << pos, eul, qJ, vWorld, euld, qJd;     
 }
 
 void load_cost_weights(vector<vectord> &weights, const string &fname)

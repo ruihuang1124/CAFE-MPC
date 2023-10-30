@@ -19,6 +19,13 @@ JointVel_ReB
     eps             0.1
 }
 
+Joint_ReB
+{
+    delta           0.01
+    delta_min       0.01
+    eps             0.1
+}
+
 MinHeight_ReB
 {
     delta           0.01
@@ -28,7 +35,7 @@ MinHeight_ReB
 
 TD_AL
 {
-    sigma           10
+    sigma           20
     sigma_max       1e4
     lambda          0
 }
