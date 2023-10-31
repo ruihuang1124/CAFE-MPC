@@ -142,12 +142,12 @@ void MHPCProblem<T>::initialize_parameters()
 {
     /* Initialize REB and AL parameters for ineq and eq constraints */    
     const std::string& constraint_setting_fname= "../"+pconfig->constraintParamFileName;
-    loadConstrintParameters(constraint_setting_fname, 
-                            grf_reb_param, 
-                            torque_reb_param, 
-                            jointspeed_reb_param,
-                            minheight_reb_param,
-                            td_al_param);
+    load_reb_params(grf_reb_param, constraint_setting_fname, "GRF");
+    load_reb_params(torque_reb_param, constraint_setting_fname, "Torque");
+    load_reb_params(jointspeed_reb_param, constraint_setting_fname, "JointSpeed");
+    load_reb_params(joint_reb_param, constraint_setting_fname, "Joint");
+    load_reb_params(minheight_reb_param, constraint_setting_fname, "MinHeight");
+    load_al_params(td_al_param, constraint_setting_fname, "TD");    
 
     if (!pconfig->costFileName.empty())
     {

@@ -48,10 +48,6 @@ void load_desired_final_states(vector<Vec36d> &x_des);
 
 void load_cost_weights(vector<vectord> &weights, const string &fname);
 
-void load_reb_params(REB_Paramd &params, const string &fname, std::string c_type);
-
-void load_al_params(AL_Paramd &params, const string &fname, std::string c_type);
-
 void publish_trajectory(const deque<shared_ptr<WBSingleTrajectory_d>>& trajs,
                         const vector<Vec4<int>>& contacts);
 
@@ -393,29 +389,6 @@ void load_cost_weights(vector<vectord> &weights, const string &fname)
                             std::make_move_iterator(qfw.end()));
         weights.push_back(weight_phase);
     }
-}
-
-void load_reb_params(REB_Paramd &params, const string &fname, std::string constr_type)
-{
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_info(fname, pt);
-
-    string reb_name = constr_type+"_ReB";
-    params.delta = pt.get<double>(reb_name+".delta");
-	params.delta_min = pt.get<double>(reb_name+".delta_min");
-	params.eps = pt.get<double>(reb_name+".eps");
-    
-}
-
-void load_al_params(AL_Paramd &params, const string &fname, std::string constr_type)
-{
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_info(fname, pt);
-
-    string td_name = constr_type+"_AL";
-    params.sigma = pt.get<double>(td_name+".sigma");
-	params.lambda = pt.get<double>(td_name+".lambda");	
-    params.sigma_max = pt.get<double>(td_name+".sigma_max");
 }
 
 void publish_trajectory(const deque<shared_ptr<WBSingleTrajectory_d>>& trajs,

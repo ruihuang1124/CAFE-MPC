@@ -85,6 +85,32 @@ struct  REB_Param_Struct
 	}
 };
 
+template<typename T>
+void load_reb_params(REB_Param_Struct<T> &params, const std::string &fname, std::string constr_type)
+{
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_info(fname, pt);
+
+    std::string reb_name = constr_type+"_ReB";
+    params.delta = pt.get<double>(reb_name+".delta");
+	params.delta_min = pt.get<double>(reb_name+".delta_min");
+	params.eps = pt.get<double>(reb_name+".eps");
+    
+}
+
+template<typename T>
+void load_al_params(AL_Param_Struct<T> &params, const std::string &fname, std::string constr_type)
+{
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_info(fname, pt);
+
+    std::string td_name = constr_type+"_AL";
+    params.sigma = pt.get<double>(td_name+".sigma");
+	params.lambda = pt.get<double>(td_name+".lambda");	
+    params.sigma_max = pt.get<double>(td_name+".sigma_max");
+}
+
+
 template<typename T, size_t xs_, size_t us_, size_t ys_>
 class PathConstraintBase
 {

@@ -73,38 +73,6 @@ inline void loadMHPCConfig(const std::string filename, MHPCConfig& config)
     config.constraintParamFileName = pt.get<std::string>("config.constraintParamFile");
 }
 
-template<typename T>
-inline void loadConstrintParameters(const std::string&fileName, 
-                                    REB_Param_Struct<T>& GRF_reb_param,
-                                    REB_Param_Struct<T>& Torque_reb_param,
-                                    REB_Param_Struct<T>& JointSpeed_reb_param,
-                                    REB_Param_Struct<T>& MinHeight_reb_param,
-                                    AL_Param_Struct<T>& TD_al_param)
-{
-	boost::property_tree::ptree pt;
-    boost::property_tree::read_info(fileName, pt);
-	std::cout << "********* loading MHPC Constraint Parameter from file **********\n" << fileName << "\n\n";
-
-	GRF_reb_param.delta = pt.get<T>("GRF_ReB.delta");
-	GRF_reb_param.delta_min = pt.get<T>("GRF_ReB.delta_min");
-	GRF_reb_param.eps = pt.get<T>("GRF_ReB.eps");
-
-    Torque_reb_param.delta = pt.get<T>("Torque_ReB.delta");
-	Torque_reb_param.delta_min = pt.get<T>("Torque_ReB.delta_min");
-	Torque_reb_param.eps = pt.get<T>("Torque_ReB.eps");	
-
-    JointSpeed_reb_param.delta = pt.get<T>("JointSpeed_ReB.delta");
-	JointSpeed_reb_param.delta_min = pt.get<T>("JointSpeed_ReB.delta_min");
-	JointSpeed_reb_param.eps = pt.get<T>("JointSpeed_ReB.eps");	
-
-    MinHeight_reb_param.delta = pt.get<T>("MinHeight_ReB.delta");
-	MinHeight_reb_param.delta_min = pt.get<T>("MinHeight_ReB.delta_min");
-	MinHeight_reb_param.eps = pt.get<T>("MinHeight_ReB.eps");	
-
-    TD_al_param.sigma = pt.get<T>("TD_AL.sigma");
-	TD_al_param.lambda = pt.get<T>("TD_AL.lambda");	
-    TD_al_param.sigma_max = pt.get<T>("TD_AL.sigma_max");
-}
 
 template<typename T>
 inline void loadCostWeights(const std::string&fileName,
@@ -423,6 +391,7 @@ public:
     REB_Param_Struct<T> grf_reb_param;
     REB_Param_Struct<T> torque_reb_param;
     REB_Param_Struct<T> jointspeed_reb_param;
+    REB_Param_Struct<T> joint_reb_param;
     REB_Param_Struct<T> minheight_reb_param;
     AL_Param_Struct<T> td_al_param;  
 };
