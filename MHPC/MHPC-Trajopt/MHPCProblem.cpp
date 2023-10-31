@@ -436,6 +436,14 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs,
     jointSpeedLimit->initialize_params(jointspeed_reb_param);
     phase->add_pathConstraint(jointSpeedLimit);
 
+    /* Joint limit */
+    shared_ptr<MHPCConstraints::JointLimit<T>> jointLimit;
+    jointLimit = std::make_shared<MHPCConstraints::JointLimit<T>>();
+    jointLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
+    jointLimit->create_data();
+    jointLimit->initialize_params(joint_reb_param);
+    phase->add_pathConstraint(jointLimit);
+
     /* Minimum Height constraint */
     shared_ptr<MHPCConstraints::WBMinimumHeight<T>> wbMinHeightConstraint;
     wbMinHeightConstraint = std::make_shared<MHPCConstraints::WBMinimumHeight<T>>();

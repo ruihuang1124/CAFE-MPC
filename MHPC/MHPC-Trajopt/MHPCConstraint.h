@@ -83,6 +83,28 @@ namespace MHPCConstraints
     };
 
     template <typename T>
+    class JointLimit : public PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>
+    {
+    private:
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::State;
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Contrl;
+        using typename PathConstraintBase<T, WBM::xs, WBM::us, WBM::ys>::Output;
+
+        MatMN<T, 2*WBM::nu, WBM::nu> C;
+        VecM<T, 2*WBM::nu> b;
+
+        Vec3<T> lb_;
+        Vec3<T> ub_;
+
+    public:
+        JointLimit();        
+        
+        void compute_violation(const State &, const Contrl &, const Output &, int k) override;
+
+        void compute_partial(const State &, const Contrl &, const Output &, int k) override;
+    };
+
+    template <typename T>
     class WBTouchDown : public TerminalConstraintBase<T, WBM::xs>
     {
     public:

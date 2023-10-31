@@ -1,7 +1,7 @@
 GRF_ReB
 {
-    delta           0.02
-    delta_min       0.02
+    delta           0.01
+    delta_min       0.01
     eps             0.1
 }
 
@@ -13,6 +13,13 @@ Torque_ReB
 }
 
 JointSpeed_ReB
+{
+    delta           0.1
+    delta_min       0.1
+    eps             0.1
+}
+
+Joint_ReB
 {
     delta           0.1
     delta_min       0.1

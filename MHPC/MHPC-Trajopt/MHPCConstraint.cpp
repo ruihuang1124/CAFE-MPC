@@ -156,6 +156,53 @@ void MHPCConstraints::JointSpeedLimit<T>::compute_partial(const State &x, const 
     }
 }
 
+/*
+    Whole-Body Joint Limit Constraint C*qJd - b > = 0 (upper and lower joint speed limits)
+*/
+template <typename T>
+MHPCConstraints::JointLimit<T>::JointLimit()
+{
+    this->update_constraint_size(2 * WBM::nu);  // Each joint speed has an upper and a lower limit
+
+    C.setZero();
+    b.setZero();
+    C.template topRows<WBM::nu>().setIdentity();
+    C.template bottomRows<WBM::nu>() = -MatMN<T, WBM::nu, WBM::nu>::Identity();
+    
+    lb_ << -1.3, -5.0, -M_PI;
+    ub_ <<  1.3,  5.0,  M_PI;
+    b.template head<WBM::nu>() = lb_.template replicate<4, 1>();    // qJ >= lb_
+    b.template tail<WBM::nu>() = -ub_.template replicate<4, 1>();    // -qJ >= - ub_
+}
+
+template <typename T>
+void MHPCConstraints::JointLimit<T>::compute_violation(const State &x, const Contrl &u, const Output &y, int k)
+{
+    (void) (u);
+    (void) (y);
+
+    for (size_t i = 0; i < this->data[k].size(); i++)
+    {
+        const auto& qJ= x.template segment<WBM::nu>(6);
+        this->data[k][i].g = C.row(i) * qJ - b[i];        
+    }
+    this->update_max_violation(k);
+}
+
+template <typename T>
+void MHPCConstraints::JointLimit<T>::compute_partial(const State &x, const Contrl &u, const Output &y, int k)
+{
+    (void)(x);
+    (void)(y);
+    (void)(u);
+
+    for (size_t i = 0; i < this->data[k].size(); i++)
+    {        
+        this->data[k][i].gx.setZero();
+        this->data[k][i].gx.template segment<WBM::nu>(6) = C.row(i).transpose();
+    }
+}
+
 template <typename T>
 void MHPCConstraints::WBMinimumHeight<T>::compute_violation(const State &x, const Contrl &u, const Output &y, int k)
 {
@@ -334,6 +381,7 @@ void MHPCConstraints::SRBMMinimumHeight<T>::compute_partial(const State &x, cons
 template class MHPCConstraints::WBGRF<double>;
 template class MHPCConstraints::TorqueLimit<double>;
 template class MHPCConstraints::JointSpeedLimit<double>;
+template class MHPCConstraints::JointLimit<double>;
 template class MHPCConstraints::WBTouchDown<double>;
 template class MHPCConstraints::SRBGRF<double>;
 template class MHPCConstraints::WBMinimumHeight<double>;
