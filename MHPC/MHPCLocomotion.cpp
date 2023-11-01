@@ -8,6 +8,10 @@
 
 #include "MHPCLocomotion.h"
 
+#include <chrono>
+using namespace std::chrono;
+using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
+
 #ifdef TIME_BENCHMARK
 #include <chrono>
 using namespace std::chrono;
@@ -126,21 +130,39 @@ void MHPCLocomotion<T>::update()
     solver.set_multiPhaseProblem(multiple_phases);
     solver.set_initial_condition(x_init_wb);
 
-#ifdef TIME_BENCHMARK
-    auto start = high_resolution_clock::now();
-#endif
+// #ifdef TIME_BENCHMARK
+    static float solve_time_acc = 0;
+    static int solve_count = 0;
+    auto solve_start = high_resolution_clock::now();
+// #endif
     solver.solve(ddp_setting);
+// #ifdef TIME_BENCHMARK
+    auto solve_stop = high_resolution_clock::now();
+    auto solve_duration = duration_ms(solve_stop - solve_start);
+    solve_time = solve_duration.count();
+    solve_time_acc += solve_time;
+    solve_count ++;
+    printf("average solve time = %f ms \n", solve_time_acc/solve_count);
+// #endif
+
 #ifdef TIME_BENCHMARK
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_ms(stop - start);
-    solve_time = duration.count();
-    printf("solve time = %f \n", solve_time);
+    static float time_publish_mpc_acc = 0;
+    static int count_publish_mpc = 0;
+    auto time_pub_mpc_start = high_resolution_clock::now();
+#endif
+    publish_mpc_cmd();
+#ifdef TIME_BENCHMARK
+    auto time_pub_mpc_end = high_resolution_clock::now();
+    auto duration_pub_mpc = duration_ms(time_pub_mpc_end - time_pub_mpc_start);
+    time_publish_mpc_acc += duration_pub_mpc.count();
+    count_publish_mpc ++;
+    std::cout << "average publishing time = " << time_publish_mpc_acc/count_publish_mpc << " ms \n";
 #endif
 
-    publish_mpc_cmd();
 #ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);
 #endif
+
     mpc_mutex.unlock();
 }
 
@@ -187,7 +209,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 5; // use 4 controls than control duration to account for delay
+    nControlSteps = 6; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
