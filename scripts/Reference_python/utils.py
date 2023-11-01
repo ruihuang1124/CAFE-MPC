@@ -13,6 +13,17 @@ def approx_geq(a, b):
         return True
     return False
 
+def projectile_pos(T,t):
+    h = 1./8.*9.81*T*T
+    a = -4.0*h/(T**2)
+    z = a*t*(t-T)
+    return z
+def projectile_vel(T,t):
+    h = 1./8.*9.81*T*T
+    a = -4.0*h/(T**2)
+    zd = a*(2*t - T)
+    return zd
+    
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np

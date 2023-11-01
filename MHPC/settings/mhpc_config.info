@@ -1,7 +1,7 @@
 config
 {
-    plan_dur_wb             0.26
-    plan_dur_srb            0.60
+    plan_dur_wb             0.25
+    plan_dur_srb            0.50
     dt_mpc                  0.02
     dt_wb                   0.01
     dt_srb                  0.05
