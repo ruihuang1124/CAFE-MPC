@@ -417,10 +417,10 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
         printf("maximum iteration reached \n");
     }   
 
-    std::cout << "total cost = " << std::setprecision(print_precision) << actual_cost << std::endl;
-    std::cout << "terminal constraint violation = " << std::setprecision(print_precision) << max_tconstr << std::endl;
-    std::cout << "path constraint violation = " << std::setprecision(print_precision) << max_pconstr << std::endl;
-    std::cout << "dynamics infeasibility = " << std::setprecision(print_precision) << feas << std::endl;
+    // std::cout << "total cost = " << std::setprecision(print_precision) << actual_cost << std::endl;
+    // std::cout << "terminal constraint violation = " << std::setprecision(print_precision) << max_tconstr << std::endl;
+    // std::cout << "path constraint violation = " << std::setprecision(print_precision) << max_pconstr << std::endl;
+    // std::cout << "dynamics infeasibility = " << std::setprecision(print_precision) << feas << std::endl;
     
 
 bad_solve:
