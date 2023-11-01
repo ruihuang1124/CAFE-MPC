@@ -326,7 +326,7 @@ void MHPCProblem<T>::update_WB_plan()
             traj_to_add = make_shared<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>(pconfig->dt_wb, new_phase_horizon);         
 
             shared_ptr<WBPhase_T> phase_to_add;
-            phase_to_add = make_shared<WBPhase_T>();
+            phase_to_add = make_shared<WBPhase_T>(pconfig->num_threads);
 
             phase_to_add->set_trajectory(traj_to_add);
 

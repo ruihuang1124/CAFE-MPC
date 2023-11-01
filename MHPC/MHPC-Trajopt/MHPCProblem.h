@@ -75,6 +75,7 @@ inline void loadMHPCConfig(const std::string filename, MHPCConfig& config)
     config.dt_wb = pt.get<double>("config.dt_wb");
     config.dt_srb = pt.get<double>("config.dt_srb");
     config.BG_alpha = pt.get<double>("config.BG_alpha");    
+    config.num_threads = pt.get<int>("config.nthreads");
     config.referenceFileName = pt.get<std::string>("config.referenceFile");
     config.costFileName = pt.get<std::string>("config.costFile");
     config.constraintParamFileName = pt.get<std::string>("config.constraintParamFile");
