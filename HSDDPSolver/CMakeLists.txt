@@ -10,6 +10,11 @@ option(TIME_BENCHMARK_DDP OFF)
 
 find_package(Boost REQUIRED)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(hsddp PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 target_include_directories(hsddp PUBLIC
 								 "common"
                                  "header"

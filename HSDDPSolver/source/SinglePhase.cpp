@@ -1,11 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <numeric>
+#include <omp.h>
 #include "SinglePhase.h"
 #include "HSDDP_Utils.h"
 
 template <typename T, size_t xs, size_t us, size_t ys>
-SinglePhase<T, xs, us, ys>::SinglePhase()
+SinglePhase<T, xs, us, ys>::SinglePhase(int num_threads)
 {
     Qx.setZero();    
     Qxx.setZero();        
@@ -14,6 +15,8 @@ SinglePhase<T, xs, us, ys>::SinglePhase()
     Quu_inv.setZero();
     tConstrs_size = 0;
     pConstrs_size = 0;
+
+    num_threads_ = num_threads;  
 }
 
 template <typename T, size_t xs, size_t us, size_t ys>
@@ -190,7 +193,7 @@ bool SinglePhase<T, xs, us, ys>::hybrid_rollout(T eps, HSDDP_OPTION &option, boo
     }
     
     
-    int k = 0;
+    int k = 0;    
     for (k = 0; k < phase_horizon; k++)
     {
         /* update control */
@@ -260,34 +263,60 @@ void SinglePhase<T, xs, us, ys>::compute_cost(const HSDDP_OPTION& option)
 
 template <typename T, size_t xs, size_t us, size_t ys>
 void SinglePhase<T, xs, us, ys>::LQ_approximation(HSDDP_OPTION &option)
-{    
-    int k = 0;
-    /* LQ approximation for all intermediate states */
-    for (k = 0; k < phase_horizon; k++)
-    {   
-        /* compute dynamics partial*/
-        dynamics_partial(A->at(k), B->at(k), C->at(k), D->at(k), X->at(k), U->at(k), t_offset + k*dt);
+{       
+    // Allocate nodes for each thread
+    int average_nodes = phase_horizon/num_threads_;
+    int rem_nodes = phase_horizon%num_threads_;
 
+    vector<int> nodes_per_thread(num_threads_, average_nodes);
+    for (int id = 0; id < rem_nodes; id++)
+    {
+        nodes_per_thread[id]++;
+    }
+    
+    #pragma omp parallel num_threads(num_threads_)
+    {
+        int id = omp_get_thread_num();
+        int kstart = 0;
+        if (id > 0)
+        {
+            kstart = std::accumulate(nodes_per_thread.begin(), nodes_per_thread.begin() + id, 0);
+        }
+
+        // std::cout << "kstart = " << kstart << "\n";
+        
+        /* LQ approximation for all intermediate states */
+        for (int k = kstart; k < kstart+nodes_per_thread[id]; k++)
+        {   
+            /* compute dynamics partial*/
+            dynamics_partial[id](A->at(k), B->at(k), C->at(k), D->at(k), X->at(k), U->at(k), t_offset + k*dt);            
+           
+        }
+    }
+
+    for (int k = 0; k < phase_horizon; k++)
+    {
         /* compute running cost partial*/
         costContainer.running_cost_par(rcostData->at(k), X->at(k), U->at(k), Y->at(k), dt, t_offset + k*dt);
 
         /* update running cost partial with path constraints using ReB method */
         if (option.ReB_active)
         {
-             /* compute path constraints partial*/
+            /* compute path constraints partial*/
             constraintContainer.compute_path_constraints_par(X->at(k), U->at(k), Y->at(k), k);    
             update_running_cost_par_with_pconstr(k);
         }
     }
+    
 
     /* compute terminal cost partial*/
-    costContainer.terminal_cost_par(*tcostData, X->at(k), t_offset + k*dt);
+    costContainer.terminal_cost_par(*tcostData, X->at(phase_horizon), t_offset + phase_horizon*dt);
 
     /* update terminal cost with terminal constraint using AL */
     if (option.AL_active)
     {
          /* compute terminal constraint partial*/
-        constraintContainer.compute_terminal_constraints_par(X->at(k));                
+        constraintContainer.compute_terminal_constraints_par(X->at(phase_horizon));                
         update_terminal_cost_par_with_tconstr();
     }
 }

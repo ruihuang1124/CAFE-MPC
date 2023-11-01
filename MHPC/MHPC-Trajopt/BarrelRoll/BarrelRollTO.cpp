@@ -30,6 +30,14 @@ using Vec36d = VecM<double, WBM::xs>;
 using REB_Paramd = REB_Param_Struct<double>;
 using AL_Paramd = AL_Param_Struct<double>;
 
+typedef VecM<double, WBM::xs> WBState;
+typedef VecM<double, WBM::us> WBContrl;
+typedef VecM<double, WBM::ys> WBOutput;
+typedef MatMN<double, WBM::xs, WBM::xs> WBStateMap;
+typedef MatMN<double, WBM::xs, WBM::us> WBContrlMap;
+typedef MatMN<double, WBM::ys, WBM::xs> WBOutputMap;
+typedef MatMN<double, WBM::ys, WBM::us> WBDirectMap;
+
 namespace pc = std::placeholders;
 
 template <typename T1, typename T2>
@@ -58,6 +66,7 @@ int main()
 {
     /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */    
     double dt = 0.01;
+    int num_threads = 8;
     vectord switching_times{0.0, 0.12, 0.33, 0.7, 0.8, 1.0, 1.2};
     const int num_phases = switching_times.size() - 1;
     vector<int> horizons(num_phases);
@@ -76,11 +85,15 @@ int main()
     pinocchio::ModelTpl<double> pin_model;
     double BG_alpha = 10.0; // First-order Baumgard stabilizatoin
     buildPinModelFromURDF(urdf_filename, pin_model);
-    shared_ptr<WBM_d> wbm_ptr;
-    wbm_ptr = std::make_shared<WBM_d>(pin_model, BG_alpha);
+    vector<shared_ptr<WBM_d>> wbm_ptr;
+    for (int i = 0; i < num_threads; i++)
+    {
+        wbm_ptr.push_back(std::make_shared<WBM_d>(pin_model, BG_alpha));
+    }
+    
 
     /* Reset map */
-    MHPCReset<double> reset_ptr(wbm_ptr.get(), nullptr);
+    MHPCReset<double> reset_ptr(wbm_ptr[0].get(), nullptr);
 
     /* Initial condition */
     Vec3d pos, eul, vWorld, euld;
@@ -113,7 +126,7 @@ int main()
     {
         horizons[i] = static_cast<int>(std::round((switching_times[i + 1] - switching_times[i]) / dt));
         shared_ptr<WBSinglePhase_d> phase;
-        phase = make_shared<WBSinglePhase_d>();
+        phase = make_shared<WBSinglePhase_d>(num_threads);
         trajs[i] = make_shared<WBSingleTrajectory_d>(dt, horizons[i]);
         phase->set_time_offset(switching_times[i]);
 
@@ -138,16 +151,24 @@ int main()
         phase->set_trajectory(trajs[i]);
 
         // assign dynamics
-        auto dynamics_callback = bind(&WBM_d::dynamics, wbm_ptr,
+        auto dynamics_callback = bind(&WBM_d::dynamics, wbm_ptr[0],
                                       pc::_1, pc::_2, pc::_3, pc::_4, pc::_5,
                                       contacts[i], dt);
         phase->set_dynamics(dynamics_callback);
 
         // assign dynamics partial
-        auto dynamics_partial_callback =
-            bind(&WBM_d::dynamics_partial, wbm_ptr,
+        vector<function<void(WBStateMap&, WBContrlMap&, WBOutputMap&, 
+                         WBDirectMap&, WBState&, WBContrl&, double)>> dynamics_partial_callback;
+
+        for (int ithread = 0; ithread < num_threads; ithread++)
+        {
+            dynamics_partial_callback.push_back(
+                bind(&WBM_d::dynamics_partial, wbm_ptr[ithread],
                  pc::_1, pc::_2, pc::_3, pc::_4, pc::_5, pc::_6, pc::_7,
-                 contacts[i], dt);
+                 contacts[i], dt)
+            );
+        }
+                    
         phase->set_dynamics_partial(dynamics_partial_callback);
 
         // assign reset map except for the last phase
@@ -230,7 +251,7 @@ int main()
             AL_Paramd td_al_param;
             load_al_params(td_al_param, constraint_params_fname, "TD");
             shared_ptr<BarrelRoll::TouchDown<double>> tdConstraint;
-            tdConstraint = std::make_shared<BarrelRoll::TouchDown<double>>(Vec4<int>::Ones(), wbm_ptr.get());
+            tdConstraint = std::make_shared<BarrelRoll::TouchDown<double>>(Vec4<int>::Ones(), wbm_ptr[0].get());
             tdConstraint->create_data();
             tdConstraint->initialize_params(td_al_param);
             phase->add_terminalConstraint(tdConstraint);

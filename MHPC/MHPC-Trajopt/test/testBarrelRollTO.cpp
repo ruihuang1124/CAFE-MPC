@@ -102,8 +102,8 @@ int main()
             const auto& uk = tau->U[k];
             const auto& defect_k = tau->Defect[k].lpNorm<Eigen::Infinity>();
             Eigen::Map<DVec<double>> hg(hg_vec.data(),3), dhg(dhg_vec.data(), 3);
-            hg = problem.wbm_ptr->evalute_centroidal_momemtum(xk);
-            dhg = problem.wbm_ptr->evalute_centroidal_momemtum_timederivative(xk, uk, pdata.wb_phase_contacts[i]);            
+            hg = problem.wbm_ptr[0]->evalute_centroidal_momemtum(xk);
+            dhg = problem.wbm_ptr[0]->evalute_centroidal_momemtum_timederivative(xk, uk, pdata.wb_phase_contacts[i]);            
 
             std::copy(xk.data(), xk.data() + 3, pos_vec.data());
             std::copy(xk.data() + 3, xk.data() + 6, eul_vec.data());

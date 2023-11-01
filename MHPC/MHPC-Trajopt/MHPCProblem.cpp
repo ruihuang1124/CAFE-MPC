@@ -45,28 +45,37 @@ void MHPCProblem<T>::prepare_initialization()
     /* Initialize the srb refernce interface */
     srb_reference.set_quadruped_reference(quad_reference);
 
-    /* Build whole-body model */
-    wbm_ptr = std::make_shared<WBM::Model<T>>(pin_model, pconfig->BG_alpha);
+    wbm_ptr.clear();
+    srbm_ptr.clear();
+    footStepPlanner.clear();
+    /* Build whole-body and srb models for each thread */
+    for (int i = 0; i < pconfig->num_threads; i++)
+    {
+        // Whole-body model
+        wbm_ptr.push_back(std::make_shared<WBM::Model<T>>(pin_model, pconfig->BG_alpha));
 
-     /* Build SRB model */
-    srbm_ptr = std::make_shared<SRBM::Model<T>>();
+        // SRB model
+        srbm_ptr.push_back(std::make_shared<SRBM::Model<T>>());
 
-     /* Create the foot step planner */
-    footStepPlanner = std::make_shared<MHPCFootStep<T>>(wbm_ptr.get(),quad_reference.get());   
-    srbm_ptr->set_footStepPlanner(footStepPlanner.get());
+        // Create the foot step planner
+        // It doesn't matter to use which wbm for the footstep planner
+        footStepPlanner.push_back(std::make_shared<MHPCFootStep<T>>(wbm_ptr[i].get(),quad_reference.get())); 
 
-    /* Build Reset model */
-    reset_ptr = std::make_shared<MHPCReset<T>>(wbm_ptr.get(), footStepPlanner.get());    
+        srbm_ptr[i]->set_footStepPlanner(footStepPlanner[i].get());        
+    }             
+
+    // Reset model
+    reset_ptr = std::make_shared<MHPCReset<T>>(wbm_ptr[0].get(), footStepPlanner[0].get());    
 
     /* Build cost model */
     wb_track_cost = std::make_shared<WBTrackingCost<T>>();
     wb_track_cost->set_reference(&wb_reference);
 
-    wb_foot_reg = std::make_shared<WBFootPlaceReg<T>>(quad_reference, wbm_ptr);
+    wb_foot_reg = std::make_shared<WBFootPlaceReg<T>>(quad_reference, wbm_ptr[0]);
 
-    swing_pos_tracking = std::make_shared<SwingFootPosTracking<T>>(quad_reference, wbm_ptr);
+    swing_pos_tracking = std::make_shared<SwingFootPosTracking<T>>(quad_reference, wbm_ptr[0]);
 
-    swing_vel_tracking = std::make_shared<SwingFootVelTracking<T>>(quad_reference, wbm_ptr);
+    swing_vel_tracking = std::make_shared<SwingFootVelTracking<T>>(quad_reference, wbm_ptr[0]);
 
     srb_track_cost = std::make_shared<SRBTrackingCost<T>>();
     srb_track_cost->set_reference(&srb_reference);
@@ -168,8 +177,8 @@ void MHPCProblem<T>::initialize_multiPhaseProblem()
     /* Create multi-phase WB planning problem */
     for (int i = 0; i < pdata->n_wb_phases; i++)
     {
-        shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>> phase;
-        phase = make_shared<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>();
+        shared_ptr<WBPhase_T> phase;
+        phase = make_shared<WBPhase_T>(pconfig->num_threads);
 
         shared_ptr<Trajectory<T, WBM::xs, WBM::us, WBM::ys>> traj;
         traj = make_shared<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>(pconfig->dt_wb, pdata->wb_phase_horizons[i]);
@@ -207,8 +216,8 @@ void MHPCProblem<T>::initialize_multiPhaseProblem()
     /* Create single-phase SRB planning problem */
     if (pdata->srb_phase_horizon > 0)
     {
-        shared_ptr<SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>> phase;
-        phase = make_shared<SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>>();
+        shared_ptr<SRBPhase_T> phase;
+        phase = make_shared<SRBPhase_T>(pconfig->num_threads);
 
         shared_ptr<Trajectory<T, SRBM::xs, SRBM::us, SRBM::ys>> traj;
         traj = make_shared<Trajectory<T, SRBM::xs, SRBM::us, SRBM::ys>>(pconfig->dt_srb, pdata->srb_phase_horizon);
@@ -316,8 +325,8 @@ void MHPCProblem<T>::update_WB_plan()
             shared_ptr<Trajectory<T, WBM::xs, WBM::us, WBM::ys>> traj_to_add;
             traj_to_add = make_shared<Trajectory<T, WBM::xs, WBM::us, WBM::ys>>(pconfig->dt_wb, new_phase_horizon);         
 
-            shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>> phase_to_add;
-            phase_to_add = make_shared<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>();
+            shared_ptr<WBPhase_T> phase_to_add;
+            phase_to_add = make_shared<WBPhase_T>();
 
             phase_to_add->set_trajectory(traj_to_add);
 
@@ -392,17 +401,26 @@ void MHPCProblem<T>::update_SRB_plan()
     @brief: Create a single-phase WB planning problem 
 */
 template <typename T>
-void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>phase, int idx)
+void MHPCProblem<T>::create_problem_one_phase(shared_ptr<WBPhase_T>phase, int idx)
 {
     /* specialize dynamics and resetmap  */
     const auto &phase_contact = pdata->wb_phase_contacts[idx];
-    auto dynamics_callback = bind(&WBM::Model<T>::dynamics, wbm_ptr,
+
+    auto dynamics_callback = bind(&WBM::Model<T>::dynamics, wbm_ptr[0],
                                   pc::_1, pc::_2, pc::_3, pc::_4, pc::_5,
                                   phase_contact, pconfig->dt_wb);
-    auto dynamics_partial_callback =
-        bind(&WBM::Model<T>::dynamics_partial, wbm_ptr,
+
+    vector<function<void(WBStateMap&, WBContrlMap&, WBOutputMap&, 
+                         WBDirectMap&, WBState&, WBContrl&, T)>> dynamics_partial_callback(pconfig->num_threads);
+
+    for (int i = 0; i < pconfig->num_threads; i++)
+    {        
+        dynamics_partial_callback[i] =
+            bind(&WBM::Model<T>::dynamics_partial, wbm_ptr[i],
              pc::_1, pc::_2, pc::_3, pc::_4, pc::_5, pc:: _6, pc::_7,
              phase_contact, pconfig->dt_wb);
+    }
+        
 
     /* set dynamics */
     phase->set_dynamics(dynamics_callback);
@@ -469,16 +487,24 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs,
     @brief: Create a single-phase SRB planning problem
 */
 template <typename T>
-void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>> phase)
+void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SRBPhase_T> phase)
 {
-    auto dynamics_callback = bind(&SRBM::Model<T>::dynamics, srbm_ptr,
+    
+    auto dynamics_callback = bind(&SRBM::Model<T>::dynamics, srbm_ptr[0],
                                   pc::_1, pc::_2, pc::_3, pc::_4, pc::_5,
                                   pconfig->dt_srb);
-    auto dynamics_partial_callback =
-        bind(&SRBM::Model<T>::dynamics_partial, srbm_ptr,
-             pc::_1, pc::_2, pc::_3, pc::_4, pc::_5, pc:: _6, pc::_7,
-             pconfig->dt_srb);
 
+    vector<function<void(SRBMStateMap&, SRBMContrlMap&, SRBMOutputMap&, 
+                         SRBMDirectMap&, SRBMState&, SRBMContrl&, T)>> dynamics_partial_callback;
+
+    for (int i = 0; i < pconfig->num_threads; i++)
+    {        
+        dynamics_partial_callback.push_back(
+            bind(&SRBM::Model<T>::dynamics_partial, srbm_ptr[i],
+             pc::_1, pc::_2, pc::_3, pc::_4, pc::_5, pc:: _6, pc::_7,
+             pconfig->dt_srb));
+    }
+        
     phase->set_dynamics(dynamics_callback);
     phase->set_dynamics_partial(dynamics_partial_callback);
 
@@ -496,7 +522,7 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, SRBM::xs
 }
 
 template <typename T>
-void MHPCProblem<T>::update_resetmap(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>phase, int idx)
+void MHPCProblem<T>::update_resetmap(shared_ptr<WBPhase_T>phase, int idx)
 {
     /* Determine the touchdown status */
     const VecM<int, 4> &phase_contact_cur = pdata->wb_phase_contacts[idx];    
@@ -535,7 +561,7 @@ void MHPCProblem<T>::update_resetmap(shared_ptr<SinglePhase<T, WBM::xs, WBM::us,
     @brief: Add terminal constraints and set reset map for a single phase of WB planning
 */
 template <typename T>
-void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>phase, int idx)
+void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<WBPhase_T>phase, int idx)
 {
     /* Determine the touchdown status */
     const VecM<int, 4> &phase_contact_cur = pdata->wb_phase_contacts[idx];
@@ -564,13 +590,13 @@ void MHPCProblem<T>::add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WB
     if (find_eigen(touchdown_status, 1).size() > 0)
     {
         shared_ptr<MHPCConstraints::WBTouchDown<T>> tdConstraint;
-        tdConstraint = std::make_shared<MHPCConstraints::WBTouchDown<T>>(touchdown_status, wbm_ptr.get());
+        tdConstraint = std::make_shared<MHPCConstraints::WBTouchDown<T>>(touchdown_status, wbm_ptr[0].get());
         tdConstraint->create_data();
         tdConstraint->initialize_params(td_al_param);
         phase->add_terminalConstraint(tdConstraint);
 
         shared_ptr<TDVelocityPenalty<T>> tdVelPenalty;
-        tdVelPenalty = std::make_shared<TDVelocityPenalty<T>>(touchdown_status, wbm_ptr);
+        tdVelPenalty = std::make_shared<TDVelocityPenalty<T>>(touchdown_status, wbm_ptr[0]);
         phase->add_cost(tdVelPenalty);               
     }
 }

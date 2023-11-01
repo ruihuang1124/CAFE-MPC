@@ -12,9 +12,13 @@
 #include "TrajectoryManagement.h"
 #include "MHPCFootStep.h"
 #include "MHPCCost.h"
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/info_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <vector>
+
+using std::vector;
 
 struct MHPCConfig
 {
@@ -35,6 +39,9 @@ struct MHPCConfig
 
     // Bamguart parameter (velocity feedback gain)
     float BG_alpha;   
+
+    // Number of threads for parallel computation
+    int num_threads{1};
 
     std::string referenceFileName;
 
@@ -222,7 +229,7 @@ struct MHPCProblemData
     shared_ptr<Trajectory<T, SRBM::xs, SRBM::us, SRBM::ys>> srb_traj = nullptr;
     shared_ptr<SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>> srb_phase = nullptr;
 
-    std::shared_ptr<QuadReference> quad_reference = nullptr;
+    shared_ptr<QuadReference> quad_reference = nullptr;
 
     std::deque<int> wb_phase_horizons;
     std::deque<bool> wb_is_phase_reach_end;
@@ -298,8 +305,28 @@ template <typename T>
 class MHPCProblem
 {
 public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    using WBPhase_T = SinglePhase<T, WBM::xs, WBM::us, WBM::ys>;
+    using SRBPhase_T = SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>;
     
+    typedef VecM<T, WBM::xs> WBState;
+    typedef VecM<T, WBM::us> WBContrl;
+    typedef VecM<T, WBM::ys> WBOutput;
+    typedef MatMN<T, WBM::xs, WBM::xs> WBStateMap;
+    typedef MatMN<T, WBM::xs, WBM::us> WBContrlMap;
+    typedef MatMN<T, WBM::ys, WBM::xs> WBOutputMap;
+    typedef MatMN<T, WBM::ys, WBM::us> WBDirectMap;
+
+    typedef VecM<T, SRBM::xs> SRBMState;
+    typedef VecM<T, SRBM::us> SRBMContrl;
+    typedef VecM<T, SRBM::ys> SRBMOutput;
+    typedef MatMN<T, SRBM::xs, SRBM::xs> SRBMStateMap;
+    typedef MatMN<T, SRBM::xs, SRBM::us> SRBMContrlMap;
+    typedef MatMN<T, SRBM::ys, SRBM::xs> SRBMOutputMap;
+    typedef MatMN<T, SRBM::ys, SRBM::us> SRBMDirectMap;
+
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     MHPCProblem():pdata(nullptr),
                   quad_reference(nullptr),
                   pconfig(nullptr),
@@ -326,8 +353,8 @@ public:
         srb_nsteps_between_mpc = 0;
 
         reset_ptr.reset();
-        wbm_ptr.reset();
-        srbm_ptr.reset();        
+        wbm_ptr.clear();
+        srbm_ptr.clear();        
     }
     
     void initialization();
@@ -344,13 +371,13 @@ public:
 
     void update_SRB_plan();
 
-    void create_problem_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>, int phase_idx);
+    void create_problem_one_phase(shared_ptr<WBPhase_T>, int phase_idx);
 
-    void create_problem_one_phase(shared_ptr<SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>>);
+    void create_problem_one_phase(shared_ptr<SRBPhase_T>);
 
-    void update_resetmap(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>, int phase_idx);
+    void update_resetmap(shared_ptr<WBPhase_T>, int phase_idx);
 
-    void add_tconstr_one_phase(shared_ptr<SinglePhase<T, WBM::xs, WBM::us, WBM::ys>>, int phase_idx);
+    void add_tconstr_one_phase(shared_ptr<WBPhase_T>, int phase_idx);
 
     int get_num_control_steps() {return (int) round(pconfig->dt_mpc / pconfig->dt_wb);}    
 
@@ -359,11 +386,12 @@ public:
 public:
     MHPCProblemData<T>* pdata;
     const MHPCConfig* pconfig;
-    std::shared_ptr<QuadReference> quad_reference;
+    shared_ptr<QuadReference> quad_reference;
     
-    std::shared_ptr<WBM::Model<T>> wbm_ptr;
-    std::shared_ptr<SRBM::Model<T>> srbm_ptr;
-    std::shared_ptr<MHPCReset<T>> reset_ptr;
+    vector<shared_ptr<WBM::Model<T>>> wbm_ptr;
+    vector<shared_ptr<SRBM::Model<T>>> srbm_ptr;
+    shared_ptr<MHPCReset<T>> reset_ptr;
+    vector<shared_ptr<MHPCFootStep<T>>> footStepPlanner;
     
     shared_ptr<WBTrackingCost<T>> wb_track_cost;
     shared_ptr<WBFootPlaceReg<T>> wb_foot_reg;
@@ -374,8 +402,7 @@ public:
     pinocchio::ModelTpl<T> pin_model;
 
     WBReference wb_reference;
-    SRBReference srb_reference;
-    std::shared_ptr<MHPCFootStep<T>> footStepPlanner;
+    SRBReference srb_reference;    
 
 
     // Overall planning horizon in seconds

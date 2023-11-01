@@ -19,6 +19,7 @@ using std::string;
 using std::deque;
 using std::shared_ptr;
 using std::function;
+using std::vector;
 
 template<typename> class MultiPhaseDDP; //forward declaration of MultiPhaseDDP class template
 
@@ -41,7 +42,7 @@ private:
     function<void(State&, Output&, State&, Contrl&, T)> dynamics;
 
     // function wrapper of Callable dynamics linearizaiton
-    function<void(StateMap&, ContrlMap&, OutputMap&, DirectMap&, State&, Contrl&, T)> dynamics_partial;
+    vector<function<void(StateMap&, ContrlMap&, OutputMap&, DirectMap&, State&, Contrl&, T)>> dynamics_partial;
 
     // function wrapper of Callable resetmap
     function<void(DVec<T>&, DVec<T>&)> resetmap_func_handle;
@@ -59,7 +60,7 @@ private:
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    SinglePhase();
+    SinglePhase(int num_threads = 1);
     
     void set_trajectory(shared_ptr<Trajectory<T,xs,us,ys>> traj_);
 
@@ -67,7 +68,8 @@ public:
         dynamics = dynamics_in;
     }
 
-    void set_dynamics_partial(function<void(StateMap&, ContrlMap&, OutputMap&, DirectMap&, State&, Contrl&, T)> dynamics_partial_in){
+    void set_dynamics_partial(
+        const vector< function<void(StateMap&, ContrlMap&, OutputMap&, DirectMap&, State&, Contrl&, T)>>& dynamics_partial_in){
         dynamics_partial = dynamics_partial_in;
     }
 
@@ -195,6 +197,7 @@ private:
     int phase_horizon;                          // number of timesteps for one phase (number of states = phase_horizon + 1)
     T dt;                                       // simulation timestep
     float t_offset;                             // time offset w.r.t. to the begining of the entire multi-phase trajectory
+    int num_threads_{1};
 
    /* pointers to hold state, control and output trajectory */    
     deque<VecM<T, xs>>* Xbar = nullptr;
