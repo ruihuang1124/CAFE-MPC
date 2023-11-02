@@ -135,7 +135,7 @@ void MHPCLocomotion<T>::update()
     static int solve_count = 0;
     auto solve_start = high_resolution_clock::now();
 // #endif
-    solver.solve(ddp_setting);
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000);
 // #ifdef TIME_BENCHMARK
     auto solve_stop = high_resolution_clock::now();
     auto solve_duration = duration_ms(solve_stop - solve_start);

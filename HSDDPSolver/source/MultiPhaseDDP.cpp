@@ -2,13 +2,14 @@
 #include <iomanip>
 #include "MultiPhaseDDP.h"
 #include "HSDDP_CompoundTypes.h"
+#include "HSDDP_Utils.h"
 
 
-
-#ifdef TIME_BENCHMARK
 #include <chrono>
 using namespace std::chrono;
 using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
+
+#ifdef TIME_BENCHMARK
 static int fit_iter = 0;
 #endif // TIME_BENCHMARK
 
@@ -234,7 +235,7 @@ bool MultiPhaseDDP<T>::backward_sweep(T regularization)
 }
 
 template <typename T>
-void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
+void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 {
     int iter = 0;
     int iter_ou = 0;
@@ -250,6 +251,11 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
     eqn_feas_buffer.clear();
     ineq_feas_buffer.clear();
 
+    bool max_cputime_reached = false;
+    auto solve_start = high_resolution_clock::now();
+    auto check_point = high_resolution_clock::now();
+    auto solve_time_elapse = duration_ms(check_point - solve_start);
+    
 #ifdef TIME_BENCHMARK
     time_ddp.clear();
     double time_partial = 0;
@@ -285,7 +291,8 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
     ineq_feas_buffer.push_back(max_pconstr);
 
     T regularization = 0;
-    while (iter_ou < option.max_AL_iter)
+    while (iter_ou < option.max_AL_iter && 
+           !max_cputime_reached)
     {
         iter_ou++;
         max_tconstr_prev = max_tconstr;
@@ -320,7 +327,17 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
 
 #ifdef TIME_BENCHMARK
             start = high_resolution_clock::now();
-#endif
+#endif      
+            // Checkpoint 1
+            check_point = high_resolution_clock::now();
+            solve_time_elapse = duration_ms(check_point - solve_start);            
+            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
+            {
+                max_cputime_reached = true;
+                break;
+            }
+            
+
             LQ_approximation(option);
             success = backward_sweep_regularized(regularization, option);
             if (!success)
@@ -345,7 +362,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
             if ((dV_abs < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
             {                
                 break;
-            }
+            }            
 
             if (line_search(option))
             {
@@ -362,7 +379,16 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION option)
             // Later terminates if actual cost change very small
             if ((fabs((cost_prev - actual_cost)/cost_prev) < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
                 break;
-
+                        
+            // Checkpoint 2
+            check_point = high_resolution_clock::now();
+            solve_time_elapse = duration_ms(check_point - solve_start);            
+            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
+            {
+                max_cputime_reached = true;
+                break;
+            }
+            
 #ifdef TIME_BENCHMARK
             stop = high_resolution_clock::now();
             duration = duration_ms(stop - start);

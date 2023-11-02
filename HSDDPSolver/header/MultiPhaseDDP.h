@@ -36,7 +36,7 @@ public:
 
     void set_initial_condition(DVec<T> x0_in) { x0 = x0_in; dx0.setZero(x0.size()); }
 
-    void solve(HSDDP_OPTION option);
+    void solve(HSDDP_OPTION& option, float max_cputime=10000); // Default max_cputime 10 s
 
     void set_dynamics_init_callback(function<void(DVec<T>)> dynamics_init_callback_);
 
