@@ -209,7 +209,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 6; // use 4 controls than control duration to account for delay
+    nControlSteps = 5; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
