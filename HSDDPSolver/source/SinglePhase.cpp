@@ -282,8 +282,6 @@ void SinglePhase<T, xs, us, ys>::LQ_approximation(HSDDP_OPTION &option)
         {
             kstart = std::accumulate(nodes_per_thread.begin(), nodes_per_thread.begin() + id, 0);
         }
-
-        // std::cout << "kstart = " << kstart << "\n";
         
         /* LQ approximation for all intermediate states */
         for (int k = kstart; k < kstart+nodes_per_thread[id]; k++)
