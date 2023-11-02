@@ -2,6 +2,7 @@
 #include <tabulate/table.hpp>
 #include "MHPCProblem.h"
 #include "MHPCConstraint.h"
+#include "MHPCCostUtil.h"
 #include "TrajectoryManagement.h"
 #include "HSDDP_Utils.h"
 #include "utilities.h"
