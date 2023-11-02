@@ -429,14 +429,14 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<WBPhase_T>phase, int id
     /* set tracking cost */    
     phase->add_cost(wb_track_cost);
 
-    /*Set foot regularization */
-    phase->add_cost(wb_foot_reg);
+    // /*Set foot regularization */
+    // phase->add_cost(wb_foot_reg);
 
-    /* Swing foot posiiton tracking */   
-    phase->add_cost(swing_pos_tracking);
+    // /* Swing foot posiiton tracking */   
+    // phase->add_cost(swing_pos_tracking);
 
-    /* Swing foot velocity tracking */
-    phase->add_cost(swing_vel_tracking);
+    // /* Swing foot velocity tracking */
+    // phase->add_cost(swing_vel_tracking);
 
     /* Torque limit */    
     shared_ptr<MHPCConstraints::TorqueLimit<T>> torqueLimit;
@@ -446,13 +446,13 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<WBPhase_T>phase, int id
     torqueLimit->initialize_params(torque_reb_param);
     phase->add_pathConstraint(torqueLimit);
 
-    /* Joint speed limit */
-    shared_ptr<MHPCConstraints::JointSpeedLimit<T>> jointSpeedLimit;
-    jointSpeedLimit = std::make_shared<MHPCConstraints::JointSpeedLimit<T>>();
-    jointSpeedLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
-    jointSpeedLimit->create_data();
-    jointSpeedLimit->initialize_params(jointspeed_reb_param);
-    phase->add_pathConstraint(jointSpeedLimit);
+    // /* Joint speed limit */
+    // shared_ptr<MHPCConstraints::JointSpeedLimit<T>> jointSpeedLimit;
+    // jointSpeedLimit = std::make_shared<MHPCConstraints::JointSpeedLimit<T>>();
+    // jointSpeedLimit->update_horizon_len(pdata->wb_phase_horizons[idx]);
+    // jointSpeedLimit->create_data();
+    // jointSpeedLimit->initialize_params(jointspeed_reb_param);
+    // phase->add_pathConstraint(jointSpeedLimit);
 
     /* Joint limit */
     shared_ptr<MHPCConstraints::JointLimit<T>> jointLimit;
