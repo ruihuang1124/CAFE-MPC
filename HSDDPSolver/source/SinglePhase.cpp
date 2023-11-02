@@ -373,10 +373,10 @@ bool SinglePhase<T, xs, us, ys>::backward_sweep(T regularization, DVec<T> Gprime
             break;
         }
         // compute value function approximation and sum up expected cost change at each time step
-        // Symmetrize Quu_inv and Qxx. Numerical issue would occur otherwise.
-        Quu_inv = (Quu->at(k).inverse() + Quu->at(k).inverse().transpose()) / 2;
+        // Symmetrize Quu_inv and Qxx. Numerical issue would occur otherwise.        
+        Quu_inv = Quu_chol.solve(Iuu);
         Qxx = (Qxx + Qxx.transpose()) / 2;
-
+      
         // compute value function approximation
         dU->at(k) = -Quu_inv * Qu->at(k);
         K->at(k) = -Quu_inv * Qux->at(k);
