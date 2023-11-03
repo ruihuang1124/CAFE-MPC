@@ -35,7 +35,7 @@ MinHeight_ReB
 
 TD_AL
 {
-    sigma           20
+    sigma           10
     sigma_max       1e4
     lambda          0
 }

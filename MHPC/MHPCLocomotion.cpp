@@ -135,7 +135,7 @@ void MHPCLocomotion<T>::update()
     static int solve_count = 0;
     auto solve_start = high_resolution_clock::now();
 // #endif
-    solver.solve(ddp_setting, mpc_config.dt_mpc*1000);
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.9);
 // #ifdef TIME_BENCHMARK
     auto solve_stop = high_resolution_clock::now();
     auto solve_duration = duration_ms(solve_stop - solve_start);
@@ -209,7 +209,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 5; // use 4 controls than control duration to account for delay
+    nControlSteps = 6; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
