@@ -1,9 +1,7 @@
 #include <functional> // std::bind, and std::placeholder
 #include <tabulate/table.hpp>
 #include "MHPCProblem.h"
-#include "MHPCConstraint.h"
 #include "MHPCCostUtil.h"
-#include "TrajectoryManagement.h"
 #include "HSDDP_Utils.h"
 #include "utilities.h"
 #include <tabulate/table.hpp>   // pretty print of tables

@@ -12,6 +12,8 @@
 #include "TrajectoryManagement.h"
 #include "MHPCFootStep.h"
 #include "MHPCCost.h"
+#include "MHPCConstraint.h"
+
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/info_parser.hpp>
@@ -168,8 +170,8 @@ template <typename T>
 class MHPCProblem
 {
 public:
-    using WBPhase_T = SinglePhase<T, WBM::xs, WBM::us, WBM::ys>;
-    using SRBPhase_T = SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys>;
+    typedef SinglePhase<T, WBM::xs, WBM::us, WBM::ys> WBPhase_T;
+    typedef SinglePhase<T, SRBM::xs, SRBM::us, SRBM::ys> SRBPhase_T;
     
     typedef VecM<T, WBM::xs> WBState;
     typedef VecM<T, WBM::us> WBContrl;
@@ -226,7 +228,7 @@ public:
 
     void prepare_initialization();
 
-    void initialize_parameters();
+    virtual void initialize_parameters();
 
     void update();
 
@@ -234,7 +236,7 @@ public:
 
     void update_SRB_plan();
 
-    void create_problem_one_phase(shared_ptr<WBPhase_T>, int phase_idx);
+    virtual void create_problem_one_phase(shared_ptr<WBPhase_T>, int phase_idx);
 
     void create_problem_one_phase(shared_ptr<SRBPhase_T>);
 
