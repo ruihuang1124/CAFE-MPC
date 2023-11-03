@@ -15,3 +15,5 @@ target_link_libraries(mhpc-trajopt PUBLIC casadigen_mhpc hsddp pinocchio::pinocc
 add_subdirectory(test)
 
 add_subdirectory(BarrelRoll)
+
+add_subdirectory(Locomotion)
