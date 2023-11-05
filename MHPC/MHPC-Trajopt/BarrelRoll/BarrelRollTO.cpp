@@ -67,7 +67,7 @@ int main()
     /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */    
     double dt = 0.01;
     int num_threads = 8;
-    vectord switching_times{0.0, 0.12, 0.33, 0.7, 0.8, 1.0, 1.2};
+    vectord switching_times{0.0, 0.12, 0.33, 0.7, 0.85, 1.05, 1.2};
     const int num_phases = switching_times.size() - 1;
     vector<int> horizons(num_phases);
     deque<shared_ptr<SinglePhase_d>> phases(num_phases);

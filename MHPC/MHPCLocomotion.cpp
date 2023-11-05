@@ -135,14 +135,17 @@ void MHPCLocomotion<T>::update()
     static int solve_count = 0;
     auto solve_start = high_resolution_clock::now();
 // #endif
-    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.9);
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.8);
 // #ifdef TIME_BENCHMARK
     auto solve_stop = high_resolution_clock::now();
     auto solve_duration = duration_ms(solve_stop - solve_start);
     solve_time = solve_duration.count();
     solve_time_acc += solve_time;
     solve_count ++;
-    printf("average solve time = %f ms \n", solve_time_acc/solve_count);
+    mpc_cmd.solve_time = solve_time;
+    // mpc_cmd.solver_iters = solver.get_solver_info();
+    printf("current solve time = %f ms \n", solve_time);
+    printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
 // #endif
 
 #ifdef TIME_BENCHMARK
@@ -209,7 +212,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 6; // use 4 controls than control duration to account for delay
+    nControlSteps = 8; // use 4 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
@@ -294,8 +297,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         mpc_cmd.contacts.push_back(contact_k);
         mpc_cmd.statusTimes.push_back(statusDuration_k);
         mpc_cmd.mpc_times.push_back(mpc_time + k * mpc_config.dt_wb);
-    }
-    mpc_cmd.solve_time = solve_time;
+    }    
     mpc_lcm.publish("MHPC_COMMAND", &mpc_cmd);
 
     printf(GRN);
