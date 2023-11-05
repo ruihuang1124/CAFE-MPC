@@ -1,7 +1,6 @@
 *build
 .vscode
 HKDMPC/log/**
-HKDMPC/PolicyRollout/*.csv
 MHPC/log/**
 lcmtypes/java
 lcmtypes/file_list.txt
