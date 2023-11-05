@@ -247,9 +247,9 @@ T Trajectory<T, xs, us, ys>::measure_dynamics_feasibility(int norm_id)
         for (auto &defect : Defect)
         {
             defect_norm += defect.template lpNorm<1>();
-            return defect_norm;
         }        
-    }
+            return defect_norm;
+    }        
 
     for (auto &defect : Defect)
     {

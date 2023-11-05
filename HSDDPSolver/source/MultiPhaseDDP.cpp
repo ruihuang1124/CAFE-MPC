@@ -237,7 +237,7 @@ bool MultiPhaseDDP<T>::backward_sweep(T regularization)
 template <typename T>
 void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 {
-    int iter = 0;
+    iter = 0;
     int iter_ou = 0;
     int iter_in = 0;
 
@@ -318,7 +318,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             compute_cost(option);
             feas = measure_dynamics_feasibility();            
 
-            printf("total cost = %f, dynamics infeasibility = %f \n", actual_cost, feas);
+            // printf("total cost = %f, dynamics infeasibility = %f \n", actual_cost, feas);
             iter_in++;
             iter++;
 #ifdef DEBUG_MODE
@@ -343,6 +343,15 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             if (!success)
             {
                 goto bad_solve;
+            }
+
+            // Checkpoint 2
+            check_point = high_resolution_clock::now();
+            solve_time_elapse = duration_ms(check_point - solve_start);            
+            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
+            {
+                max_cputime_reached = true;
+                break;
             }
 
             if (option.MS)
@@ -378,16 +387,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 
             // Later terminates if actual cost change very small
             if ((fabs((cost_prev - actual_cost)/cost_prev) < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
-                break;
-                        
-            // Checkpoint 2
-            check_point = high_resolution_clock::now();
-            solve_time_elapse = duration_ms(check_point - solve_start);            
-            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
-            {
-                max_cputime_reached = true;
-                break;
-            }
+                break;                                    
             
 #ifdef TIME_BENCHMARK
             stop = high_resolution_clock::now();
@@ -443,10 +443,10 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
         printf("maximum iteration reached \n");
     }   
 
-    // std::cout << "total cost = " << std::setprecision(print_precision) << actual_cost << std::endl;
-    // std::cout << "terminal constraint violation = " << std::setprecision(print_precision) << max_tconstr << std::endl;
-    // std::cout << "path constraint violation = " << std::setprecision(print_precision) << max_pconstr << std::endl;
-    // std::cout << "dynamics infeasibility = " << std::setprecision(print_precision) << feas << std::endl;
+    printf("total cost = %f \n", actual_cost);
+    printf("dynamics infeasibility = %f \n", feas);
+    printf("terminal constraint violation = %f \n", max_tconstr);    
+    printf("path constraint violation = %f \n", max_pconstr);
     
 
 bad_solve:

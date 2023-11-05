@@ -38,6 +38,8 @@ public:
 
     void solve(HSDDP_OPTION& option, float max_cputime=10000); // Default max_cputime 10 s
 
+    int get_solver_info() {return iter;}
+
     void set_dynamics_init_callback(function<void(DVec<T>)> dynamics_init_callback_);
 
 public:
@@ -89,6 +91,7 @@ public:
 
 private:
     int n_phases;
+    int iter{0};
 
     T actual_cost;
     T merit;
