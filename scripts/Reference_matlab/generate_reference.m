@@ -30,9 +30,10 @@ gait2.body_states(:,5) = gait2.body_states(:,5) + gait1.body_states(end,5);
 gait2.foot_placements(:,[2,5,8,11]) = gait2.foot_placements(:,[2,5,8,11]) + gait1.foot_placements(end, [2,5,8,11]);
 gait2.body_states(:,3) = 2*pi;
 gait = combine_two_gaits(gait1, gait2);
+
 %%
 tau_sz = size(gait.body_states, 1);
-status_durations = zeros(tau_sz, 4);
+gait.status_durations = zeros(tau_sz, 4);
 
 if ~isfield(gait,"torques")
     gait.torques = zeros(tau_sz, 12);
@@ -55,9 +56,16 @@ end
 % Calculate contact status durations for each leg 
 dt = gait.t(2) - gait.t(1);
 for leg = 1:4
-    status_durations(:, leg) = Induce_status_duration_per_leg(gait.contacts(:,leg), dt);
+    gait.status_durations(:, leg) = Induce_status_duration_per_leg(gait.contacts(:,leg), dt);
 end
 
+%%
+gait = flip_left_and_right(gait);
+for k = 1:tau_sz
+    eul = gait.body_states(k, 1:3);
+    euld = gait.body_states(k, 7:9);
+    gait.body_states(k, 7:9) = euld2omegab(eul', euld');
+end
 %% Write to file
 % write contact information to csv file
 fname = "PostProcessedData/"+"quad_reference.csv";
@@ -92,7 +100,7 @@ for i = 1:tau_sz
     fprintf_array(fid, gait.contacts(i, :), '%d ');
 
     fprintf(fid, 'status_dur\n');
-    fprintf_array(fid, status_durations(i, :), '%6.3f ');
+    fprintf_array(fid, gait.status_durations(i, :), '%6.3f ');
 end
 fclose(fid);
 
