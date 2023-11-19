@@ -85,6 +85,10 @@ void MHPCLocomotion<T>::initialize()
 
     mpc_iter = 0;
 
+    int solve_iters;
+    float solve_time;
+    std::tie<int, float>(solve_iters, solve_time) = solver.get_solver_info();
+
     printf("MHPC solver is initialized successfully \n\n");
 
     publish_mpc_cmd();

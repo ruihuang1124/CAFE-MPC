@@ -237,7 +237,7 @@ bool MultiPhaseDDP<T>::backward_sweep(T regularization)
 template <typename T>
 void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 {
-    iter = 0;
+    iter_ = 0;
     int iter_ou = 0;
     int iter_in = 0;
 
@@ -320,7 +320,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 
             // printf("total cost = %f, dynamics infeasibility = %f \n", actual_cost, feas);
             iter_in++;
-            iter++;
+            iter_++;
 #ifdef DEBUG_MODE
             printf("\t inner loop iteration %d \n", iter_in);
 #endif                  
@@ -456,6 +456,10 @@ bad_solve:
         printf("Failed to solve the optimization due to too large regularization \n");
         printf(RESET);
     }
+
+    auto stop = high_resolution_clock::now();
+    solve_time_elapse = duration_ms(check_point - solve_start);         
+    solve_time_ = solve_time_elapse.count();
 }
 
 template <typename T>

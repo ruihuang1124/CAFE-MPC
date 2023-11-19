@@ -5,6 +5,7 @@
 #include <deque>
 #include <memory> // smart pointer (since C++ 11)
 #include <functional>
+#include <utility> // std::pair, tuple
 #include <lcm/lcm-cpp.hpp>
 #include "SinglePhase.h"
 #include "solver_intermtraj_lcmt.hpp"
@@ -36,9 +37,7 @@ public:
 
     void set_initial_condition(DVec<T> x0_in) { x0 = x0_in; dx0.setZero(x0.size()); }
 
-    void solve(HSDDP_OPTION& option, float max_cputime=10000); // Default max_cputime 10 s
-
-    int get_solver_info() {return iter;}
+    void solve(HSDDP_OPTION& option, float max_cputime=10000); // Default max_cputime 10 s    
 
     void set_dynamics_init_callback(function<void(DVec<T>)> dynamics_init_callback_);
 
@@ -75,6 +74,8 @@ public:
     void get_solver_info(std::vector<float>&, std::vector<float>&,
                          std::vector<float>&, std::vector<float>&);
 
+    std::pair<int, float> get_solver_info() {return std::make_pair<int, float>(std::move(iter_), std::move(solve_time_));}                         
+
     void publish_trajectory(){
         traj_to_publish.x_tau.clear();
         traj_to_publish.u_tau.clear();
@@ -91,7 +92,8 @@ public:
 
 private:
     int n_phases;
-    int iter{0};
+    int iter_{0};
+    float solve_time_{0};
 
     T actual_cost;
     T merit;
