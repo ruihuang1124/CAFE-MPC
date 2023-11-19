@@ -23,7 +23,7 @@ class QuadState:
 
 # Desired Trajectories
 xinit, yinit, zinit = 0.0, 0.0, 0.25
-vx_des, vy_des, z_des = 0.1, 0.0, 0.25
+vx_des, vy_des, z_des = 0.5, 0.0, 0.25
 swingHeight = 0.1
 
 planning_horizon = 5.0
@@ -32,7 +32,7 @@ dt = 0.01
 N = round(planning_horizon/dt) + 1
 
 # Desired Gait
-periodicGait = FlyTrot
+periodicGait = Pronk
 
 # Setup the planners
 reference_planner = ReferenceManager()

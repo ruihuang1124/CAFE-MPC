@@ -15,21 +15,21 @@ Gaits{10} = "FlyTrot/";
 Gaits{11} = "Barrel/";
 gait_prepross_path = "PreProcessedData/";
 
-gait_num = 11;
-gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
+gait1_num = 11;
+gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait1_num});
 
-gait_num = 10;
-gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait_num});
+gait2_num = 8;
+gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 
 % Save only the regular locomotion gait
-% gait = gait2;
+gait = gait2;
 
 % Combine barrel roll and locomotion gaits
 % Offset the x,y positions in gait 2 to start at the end of gait 1
-gait2.body_states(:,5) = gait2.body_states(:,5) + gait1.body_states(end,5);
-gait2.foot_placements(:,[2,5,8,11]) = gait2.foot_placements(:,[2,5,8,11]) + gait1.foot_placements(end, [2,5,8,11]);
-gait2.body_states(:,3) = 2*pi;
-gait = combine_two_gaits(gait1, gait2);
+% gait2.body_states(:,5) = gait2.body_states(:,5) + gait1.body_states(end,5);
+% gait2.foot_placements(:,[2,5,8,11]) = gait2.foot_placements(:,[2,5,8,11]) + gait1.foot_placements(end, [2,5,8,11]);
+% gait2.body_states(:,3) = 2*pi;
+% gait = combine_two_gaits(gait1, gait2);
 
 %%
 tau_sz = size(gait.body_states, 1);
