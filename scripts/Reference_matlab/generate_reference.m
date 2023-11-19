@@ -59,13 +59,14 @@ for leg = 1:4
     gait.status_durations(:, leg) = Induce_status_duration_per_leg(gait.contacts(:,leg), dt);
 end
 
-%%
-gait = flip_left_and_right(gait);
-for k = 1:tau_sz
-    eul = gait.body_states(k, 1:3);
-    euld = gait.body_states(k, 7:9);
-    gait.body_states(k, 7:9) = euld2omegab(eul', euld');
-end
+%% Used for HKD
+% gait = flip_left_and_right(gait);
+% for k = 1:tau_sz
+%     eul = gait.body_states(k, 1:3);
+%     euld = gait.body_states(k, 7:9);
+%     gait.body_states(k, 7:9) = euld2omegab(eul', euld');
+% end
+
 %% Write to file
 % write contact information to csv file
 fname = "PostProcessedData/"+"quad_reference.csv";
