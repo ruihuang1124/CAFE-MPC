@@ -48,8 +48,10 @@ int main()
     LocoProblem<double>::WBState xinit_wb;
     qJd.setZero();
     eul.setZero(); vWorld.setZero(); eulrate.setZero();
-    qJ = Vec3<double>(0, -0.9, 1.8).replicate<4,1>();
-    pos << 0, 0, 0.2511;
+    // qJ = Vec3<double>(0, -0.9, 1.8).replicate<4,1>();
+    // pos << 0, 0, 0.2511;
+    qJ = Vec3<double>(0, -1.0, 2.0).replicate<4,1>();
+    pos << 0, 0, 0.2183;
     xinit_wb << pos, eul, qJ, vWorld, eulrate, qJd;
     
     // Build solve
