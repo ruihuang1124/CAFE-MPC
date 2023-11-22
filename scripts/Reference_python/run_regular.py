@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from gait_schedule import Trot
+from gait_schedule import Stance, Trot
 from gait_schedule import Bound
 from gait_schedule import FlyTrot
 from gait_schedule import Pace
@@ -22,29 +22,31 @@ class QuadState:
 
 
 # Desired Trajectories
-xinit, yinit, zinit = 0.0, 0.0, 0.25
-vx_des, vy_des, z_des = 0.5, 0.0, 0.25
-swingHeight = 0.1
+xinit, yinit, zinit = 0.0, 0.0, 0.22
+vx_des, vy_des, z_des = 0.6, 0.0, 0.22
+swingHeight = 0.06
 
-planning_horizon = 10.0
-transition_time = 2.5
+periodic_plan_horizon = 1.0
+transition_time = 0.5
 dt = 0.01
-N = round(planning_horizon/dt) + 1
 
 # Desired Gait
 periodicGait = Pronk
+endGait = Stance
+endGait.switchingTimes = np.array([0.0, 0.15])
+
 
 # Setup the planners
 reference_planner = ReferenceManager()
 reference_planner.setPeriodicGait(periodicGait)
-reference_planner.setPlanningHorizon(planning_horizon)
+reference_planner.setEndGait(endGait)
+reference_planner.setPlanningHorizon(periodic_plan_horizon)
 reference_planner.setInitialCoMPosition(xinit, yinit, zinit)
 reference_planner.setCoMTargetAndTransitionTime(vx_des, vy_des, z_des, transition_time)
 reference_planner.setSwingHeight(swingHeight)
 reference_planner.computeReferenceTrajectoryOnce()
-modeSchedule = reference_planner.getModeSchedule()
+N = round((periodic_plan_horizon+endGait.switchingTimes[-1])/dt) + 1
 
-# Create a pybullet model for ik computation
 # Create a pybullet model for ik computation
 urdf_filename =  "../../urdf/mini_cheetah_simple_correctedInertia.urdf"
 robot = MiniCheetah(urdf_file=urdf_filename)

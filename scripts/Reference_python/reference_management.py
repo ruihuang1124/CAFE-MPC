@@ -16,6 +16,9 @@ class ReferenceManager:
     def setPeriodicGait(self, periodicGait) -> None:
         self.gaitSchedule_.setPeriodicGait(periodicGait)
     
+    def setEndGait(self, endGait=None) -> None:
+        self.gaitSchedule_.setEndGait(endGait)
+    
     def setInitialCoMPosition(self, xinit, yinit, zinit) -> None:
         self.comPlanner_.setInitialCondition(xinit, yinit, zinit)
 
@@ -30,7 +33,7 @@ class ReferenceManager:
         self.planHorizon_ = planHorizon
 
     def computeReferenceTrajectoryOnce(self) -> None:
-        self.gaitSchedule_.buildSchedule(self.planHorizon_ * 2.0)
+        self.gaitSchedule_.buildSchedule(self.planHorizon_)
         self.footholdPlanner_.computeFootholdLocations()
     
     def getModeSchedule(self):

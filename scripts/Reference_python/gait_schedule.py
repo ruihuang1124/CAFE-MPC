@@ -73,6 +73,7 @@ class GaitSchedule:
         self.initialGait_ = Stance                  
         self.periodicGait_ = None
         self.modeSchedule_ = None
+        self.endGait_ = None
 
         # Schedule of each independent leg
         self.legContactStatus_ = [[],[],[],[]]  # List of 4 lists, each representing a contact status for one foot
@@ -80,6 +81,9 @@ class GaitSchedule:
     
     def setPeriodicGait(self, periodicGait):
         self.periodicGait_ = periodicGait
+    
+    def setEndGait(self, endGait = None):
+        self.endGait_ = endGait
     
     def buildSchedule(self, finalTime) -> None:
         self.buildModeSchedule_(finalTime)
@@ -102,6 +106,9 @@ class GaitSchedule:
                 if switchTime >= finalTime:
                     break
         
+        if self.endGait_ != None:
+            modeSequence = np.hstack((modeSequence, self.endGait_.modeSequence))
+            switchingTimes = np.hstack((switchingTimes, self.endGait_.switchingTimes[1:] + finalTime))        
         self.modeSchedule_ = ModeSchedule(modeSequence, switchingTimes)
     
     def buildLegContactSchedule_(self) -> None:
