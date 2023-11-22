@@ -103,8 +103,10 @@ int main()
     eul.setZero();
     vWorld.setZero();
     euld.setZero();
-    pos[2] = 0.1464;
-    qJ = Vec3d(0, -1.2, 2.4).replicate<4, 1>();
+    // pos[2] = 0.1464;
+    // qJ = Vec3d(0, -1.2, 2.4).replicate<4, 1>();
+    qJ = Vec3<double>(0, -1.0, 2.0).replicate<4,1>();
+    pos[2] = 0.2183;
     qJd.setZero();
     xinit << pos, eul, qJ, vWorld, euld, qJd;
 
