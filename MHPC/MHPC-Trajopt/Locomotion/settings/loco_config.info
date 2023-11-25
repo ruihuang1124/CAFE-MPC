@@ -1,13 +1,13 @@
 config
 {
-    plan_dur_wb             7.0
+    plan_dur_wb             6.00
     plan_dur_srb            0.00
     dt_mpc                  0.02
     dt_wb                   0.01
     dt_srb                  0.05
     BG_alpha                10.0    
-    nthreads                1
-    referenceFile           flytrot
+    nthreads                4
+    referenceFile           flypace
     costFile                MHPC/MHPC-Trajopt/Locomotion/settings/loco_cost_weights.JSON
     constraintParamFile     MHPC/MHPC-Trajopt/Locomotion/settings/loco_constraint_params.info
 }
