@@ -18,17 +18,19 @@ Gaits{13} = "PreBarrelPace/";
 Gaits{14} = "PreBarrelPronk/";
 gait_prepross_path = "PreProcessedData/";
 
-gait0_num = 14;
+gait0_num = 7;
 gait0 = read_gait_from_file(gait_prepross_path + Gaits{gait0_num});
+gait0 = truncate_gait(gait0, 1, 160);
 
 gait1_num = 11;
 gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait1_num});
+gait1 = truncate_gait(gait1, 14, 130);
 
-gait2_num = 8;
+gait2_num = 7;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 
 %% Regular locomotion gait
-% gait = gait0;
+% gait = gait2;
 
 %% Barrel roll -> loco
 % % Offset the x,y positions in gait 2 to start at the end of gait 1
@@ -138,8 +140,14 @@ function write_gait_to_file(gait)
     fclose(fid);
 end
 
-
-
+function gait = truncate_gait(gait_in, kstart, kend)
+gait = gait_in;
+fields = fieldnames(gait_in);
+for j=1:numel(fields)
+    fieldname = fields{j};
+    gait.(fieldname) = gait_in.(fieldname)(kstart:kend, :);
+end
+end
 
 %% Help functions
 function status_durs = Induce_status_duration_per_leg(contacts_leg, dt)
