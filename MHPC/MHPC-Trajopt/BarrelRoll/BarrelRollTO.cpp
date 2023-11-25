@@ -67,7 +67,7 @@ int main()
     /* Swiching times: Full stance -> Right foot stance -> Flight -> Landing  */    
     double dt = 0.01;
     int num_threads = 8;
-    vectord switching_times{0.0, 0.12, 0.33, 0.7, 0.85, 1.05, 1.2};
+    vectord switching_times{0.0, 0.12, 0.33, 0.75, 0.90, 1.10, 1.25};
     const int num_phases = switching_times.size() - 1;
     vector<int> horizons(num_phases);
     deque<shared_ptr<SinglePhase_d>> phases(num_phases);
@@ -294,10 +294,10 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     x_des[0] << pos, eul, qJ, vWorld, euld, qJd;
 
     // Desired final state for the second phase (right stance)
-    pos << 0, -0.30, 0.33; 
+    pos << 0, -0.25, 0.33; 
     eul << 0, 0, 0.5*M_PI;
     euld << 0, 0, 3.0*M_PI;
-    vWorld << 0, -1.0, 2.0;
+    vWorld << 0, -1.2, 2.0;
     qJ << M_PI/6, -1.0, 2.0, 
           -M_PI/5, -0.5, 1.0, 
           M_PI/6, -1.0, 2.0, 
@@ -305,10 +305,10 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     x_des[1] << pos, eul, qJ, vWorld, euld, qJd;     
 
     // Desired final state for the third phase (air)
-    pos << 0, -0.4, 0.22;
+    pos << 0.0, -0.55, 0.22;
     eul << 0, 0, 2.0*M_PI;
     euld << 0, 0, 3.0*M_PI;
-    vWorld << 0, 0, -2.5;
+    vWorld << 0.0, -1.5, -2.5;
     qJ << 0.3, -1.1, 2.2, 
          -0.3, -1.1, 2.2, 
          0.3, -1.1, 2.2, 
@@ -319,7 +319,7 @@ void load_desired_final_states(vector<Vec36d> &x_des)
     pos[2] = 0.25; 
     eul[2] = 2*M_PI;
     euld[2] = 0;
-    vWorld[2] = 0;    
+    vWorld << 0, 0, 0;  
     x_des[3] << pos, eul, qJ, vWorld, euld, qJd;
 
     // Desired final state for the fixth phase (flight)
