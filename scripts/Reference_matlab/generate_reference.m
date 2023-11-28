@@ -24,7 +24,7 @@ gait0 = truncate_gait(gait0, 1, 160);
 
 gait1_num = 11;
 gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait1_num});
-gait1 = truncate_gait(gait1, 14, 130);
+gait1 = truncate_gait(gait1, 13, 130);
 
 gait2_num = 7;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});

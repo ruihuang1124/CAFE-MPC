@@ -23,7 +23,7 @@ class QuadState:
 
 # Desired Trajectories
 xinit, yinit, zinit = 0.0, 0.0, 0.22
-vx_des, vy_des, z_des = 0.5, 0.0, 0.22
+vx_des, vy_des, z_des = 0.8, 0.0, 0.22
 swingHeight = 0.06
 
 periodic_plan_horizon = 6.0

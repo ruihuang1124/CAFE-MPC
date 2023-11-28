@@ -7,7 +7,7 @@ config
     dt_srb                  0.03
     BG_alpha                10.0    
     nthreads                4
-    referenceFile           barrel_flytrot
+    referenceFile           pace_br_pace
     costFile                MHPC/settings/cost_weights_barrel.JSON
     constraintParamFile     MHPC/settings/constraint_params_barrel.info
 }
