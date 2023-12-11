@@ -1,6 +1,6 @@
 config
 {
-    plan_dur_wb             6.00
+    plan_dur_wb             1.00
     plan_dur_srb            0.00
     dt_mpc                  0.02
     dt_wb                   0.01

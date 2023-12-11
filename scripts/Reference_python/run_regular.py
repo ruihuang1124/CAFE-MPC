@@ -26,22 +26,22 @@ xinit, yinit, zinit = 0.0, 0.0, 0.22
 vx_des, vy_des, z_des = 0.8, 0.0, 0.22
 swingHeight = 0.06
 
-periodic_plan_horizon = 6.0
+periodic_plan_horizon = 2.5
 transition_time = 0.5
 dt = 0.01
 N = round(periodic_plan_horizon/dt) + 1
 
 # Desired Gait
-periodicGait = FlyPace
-# endGait = Stance
-# endGait.switchingTimes = np.array([0.0, 0.15])
-# N = N + round(endGait.switchingTimes[-1]/dt)
+periodicGait = FlyTrot
+endGait = Stance
+endGait.switchingTimes = np.array([0.0, 0.15])
+N = N + round(endGait.switchingTimes[-1]/dt)
 
 
 # Setup the planners
 reference_planner = ReferenceManager()
 reference_planner.setPeriodicGait(periodicGait)
-# reference_planner.setEndGait(endGait)
+reference_planner.setEndGait(endGait)
 reference_planner.setPlanningHorizon(periodic_plan_horizon)
 reference_planner.setInitialCoMPosition(xinit, yinit, zinit)
 reference_planner.setCoMTargetAndTransitionTime(vx_des, vy_des, z_des, transition_time)

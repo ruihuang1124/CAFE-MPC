@@ -21,16 +21,16 @@ gait_prepross_path = "PreProcessedData/";
 gait0_num = 7;
 gait0 = read_gait_from_file(gait_prepross_path + Gaits{gait0_num});
 gait0 = truncate_gait(gait0, 1, 160);
-
+% 
 gait1_num = 11;
 gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait1_num});
-gait1 = truncate_gait(gait1, 13, 130);
-
+gait1 = truncate_gait(gait1, 14, 130);
+% 
 gait2_num = 7;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 
 %% Regular locomotion gait
-% gait = gait2;
+% gait = gait0;
 
 %% Barrel roll -> loco
 % % Offset the x,y positions in gait 2 to start at the end of gait 1
