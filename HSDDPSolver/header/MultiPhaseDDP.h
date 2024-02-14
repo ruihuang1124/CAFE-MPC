@@ -6,6 +6,7 @@
 #include <memory> // smart pointer (since C++ 11)
 #include <functional>
 #include <utility> // std::pair, tuple
+#include <tuple>
 #include <lcm/lcm-cpp.hpp>
 #include "SinglePhase.h"
 #include "solver_intermtraj_lcmt.hpp"
@@ -37,7 +38,7 @@ public:
 
     void set_initial_condition(DVec<T> x0_in) { x0 = x0_in; dx0.setZero(x0.size()); }
 
-    void solve(HSDDP_OPTION& option, float max_cputime=10000); // Default max_cputime 10 s    
+    void solve(HSDDP_OPTION& option, float max_cputime=1e6); // Default max_cputime 100 s    
 
     void set_dynamics_init_callback(function<void(DVec<T>)> dynamics_init_callback_);
 
@@ -47,7 +48,7 @@ public:
 
     bool hybrid_rollout(T eps, HSDDP_OPTION& option);
 
-    bool line_search(HSDDP_OPTION& option);
+    std::pair<bool, int> line_search(HSDDP_OPTION& option);
 
     void compute_cost(const HSDDP_OPTION& option);
 
@@ -55,7 +56,7 @@ public:
 
     bool backward_sweep(T regularization);
 
-    bool backward_sweep_regularized(T& regularization, HSDDP_OPTION&option);
+    std::pair<bool, int> backward_sweep_regularized(T& regularization, HSDDP_OPTION&option);
 
     void impact_aware_step(DVec<T>&G, DMat<T>&H, const DMat<T>& Px);
 
@@ -74,8 +75,13 @@ public:
     void get_solver_info(std::vector<float>&, std::vector<float>&,
                          std::vector<float>&, std::vector<float>&);
 
-    std::pair<int, float> get_solver_info() {return std::make_pair<int, float>(std::move(iter_), std::move(solve_time_));}                         
-
+    void get_solver_info(int& n_iters, int& n_ls_iters, int& n_reg_iters, float& solve_time){
+        n_iters = iter_;
+        n_ls_iters = ls_iter_total_;
+        n_reg_iters = reg_iter_total_;
+        solve_time = solve_time_;
+    }
+   
     void publish_trajectory(){
         traj_to_publish.x_tau.clear();
         traj_to_publish.u_tau.clear();
@@ -93,6 +99,8 @@ public:
 private:
     int n_phases;
     int iter_{0};
+    int ls_iter_total_{0};
+    int reg_iter_total_{0};
     float solve_time_{0};
 
     T actual_cost;

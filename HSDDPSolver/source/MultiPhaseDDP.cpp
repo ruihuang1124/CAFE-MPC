@@ -101,7 +101,7 @@ bool MultiPhaseDDP<T>::hybrid_rollout(T eps, HSDDP_OPTION &option)
 }
 
 template <typename T>
-bool MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
+std::pair<bool, int> MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
 {
     T exp_cost_change = 0;
     T exp_merit_change = 0;
@@ -112,12 +112,14 @@ bool MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
 
     bool success = false;
     bool rollout_success = true;
+    int iter = 0;
 
 #ifdef TIME_BENCHMARK
     fit_iter = 0;
 #endif
     while (eps > 1e-3)
     {        
+        iter ++;
         rollout_success = hybrid_rollout(eps, option);
         compute_cost(option);
         feas = measure_dynamics_feasibility();
@@ -140,14 +142,14 @@ bool MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
         fit_iter++;
 #endif
     }
-    return success;
+    return std::make_pair<bool, int>(std::move(success), std::move(iter));
 }
 
 template <typename T>
-bool MultiPhaseDDP<T>::backward_sweep_regularized(T &regularization, HSDDP_OPTION &option)
+std::pair<bool, int> MultiPhaseDDP<T>::backward_sweep_regularized(T &regularization, HSDDP_OPTION &option)
 {
     bool success = false;
-    int iter = 1;
+    int iter = 0;
 
 #ifdef TIME_BENCHMARK
     auto start = high_resolution_clock::now();
@@ -158,12 +160,12 @@ bool MultiPhaseDDP<T>::backward_sweep_regularized(T &regularization, HSDDP_OPTIO
 #ifdef DEBUG_MODE
         printf("\t regularization = %f\n", regularization);
 #endif
+        iter++;
         success = backward_sweep(regularization);
         if (success)
             break;
 
-        regularization = std::max(regularization * option.update_regularization, T(1e-03));
-        iter++;
+        regularization = std::max(regularization * option.update_regularization, T(1e-03));        
 
         if (regularization > 1e2)
         {
@@ -183,7 +185,7 @@ bool MultiPhaseDDP<T>::backward_sweep_regularized(T &regularization, HSDDP_OPTIO
     regularization = regularization / 20;
     if (regularization < 1e-06)
         regularization = 0;
-    return success;
+    return std::make_pair<bool, int>(std::move(success), std::move(iter));
 }
 
 /*
@@ -238,6 +240,7 @@ template <typename T>
 void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 {
     iter_ = 0;
+    ls_iter_total_ = 0;
     int iter_ou = 0;
     int iter_in = 0;
 
@@ -339,7 +342,9 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             
 
             LQ_approximation(option);
-            success = backward_sweep_regularized(regularization, option);
+            int reg_iter(0);
+            std::tie<bool, int>(success, reg_iter) = backward_sweep_regularized(regularization, option);
+            reg_iter_total_ += reg_iter;
             if (!success)
             {
                 goto bad_solve;
@@ -373,7 +378,11 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
                 break;
             }            
 
-            if (line_search(option))
+            bool ls_success(false);
+            int ls_iter(0);
+            std::tie<bool, int>(ls_success, ls_iter) = line_search(option);
+            ls_iter_total_ += ls_iter;
+            if (ls_success)
             {
                 // if line search succeeds, accept the step
                 update_nominal_trajectory();
@@ -410,15 +419,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             duration = duration_ms(stop - start);
             time_partial = duration.count();
 #endif
-        }
-        if (option.AL_active)
-        {
-            update_AL_params(option);
-        }
-        if (option.ReB_active)
-        {
-            update_REB_params(option);
-        }
+        }       
 
 #ifdef DEBUG_MODE
         printf("terminal constraint violation = %f \n", max_tconstr);
@@ -437,11 +438,22 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             printf("optimization terminates \n");
             break;
         }
+        if (iter_ou >= option.max_AL_iter)
+        {
+            printf("maximum iteration reached \n");
+            break;
+        }   
+
+        if (option.AL_active)
+        {
+            update_AL_params(option);
+        }
+        if (option.ReB_active)
+        {
+            update_REB_params(option);
+        }
     }
-    if (iter_ou >= option.max_AL_iter)
-    {
-        printf("maximum iteration reached \n");
-    }   
+    
 
     printf("total cost = %f \n", actual_cost);
     printf("dynamics infeasibility = %f \n", feas);
@@ -458,7 +470,7 @@ bad_solve:
     }
 
     auto stop = high_resolution_clock::now();
-    solve_time_elapse = duration_ms(check_point - solve_start);         
+    solve_time_elapse = duration_ms(stop - solve_start);         
     solve_time_ = solve_time_elapse.count();
 }
 
