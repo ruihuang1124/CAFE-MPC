@@ -85,9 +85,7 @@ void MHPCLocomotion<T>::initialize()
 
     mpc_iter = 0;
 
-    int solve_iters;
-    float solve_time;
-    std::tie<int, float>(solve_iters, solve_time) = solver.get_solver_info();
+    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);
 
     printf("MHPC solver is initialized successfully \n\n");
 
@@ -135,22 +133,25 @@ void MHPCLocomotion<T>::update()
     solver.set_initial_condition(x_init_wb);
 
 // #ifdef TIME_BENCHMARK
-    static float solve_time_acc = 0;
-    static int solve_count = 0;
-    auto solve_start = high_resolution_clock::now();
+    // static float solve_time_acc = 0;
+    // static int solve_count = 0;
+    // auto solve_start = high_resolution_clock::now();
 // #endif
-    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.8);
+    // solver.solve(ddp_setting, 18);
+    solver.solve(ddp_setting);
 // #ifdef TIME_BENCHMARK
-    auto solve_stop = high_resolution_clock::now();
-    auto solve_duration = duration_ms(solve_stop - solve_start);
-    solve_time = solve_duration.count();
-    solve_time_acc += solve_time;
-    solve_count ++;
-    mpc_cmd.solve_time = solve_time;
-    // mpc_cmd.solver_iters = solver.get_solver_info();
-    printf("current solve time = %f ms \n", solve_time);
-    printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
+    // auto solve_stop = high_resolution_clock::now();
+    // auto solve_duration = duration_ms(solve_stop - solve_start);
+    // solve_time = solve_duration.count();
+    // solve_time_acc += solve_time;
+    // solve_count ++;
+    // mpc_cmd.solve_time = solve_time;    
+    // printf("current solve time = %f ms \n", solve_time);
+    // printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
 // #endif
+    
+    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);
+
 
 #ifdef TIME_BENCHMARK
     static float time_publish_mpc_acc = 0;
@@ -301,6 +302,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         mpc_cmd.contacts.push_back(contact_k);
         mpc_cmd.statusTimes.push_back(statusDuration_k);
         mpc_cmd.mpc_times.push_back(mpc_time + k * mpc_config.dt_wb);
+        
     }    
     mpc_lcm.publish("MHPC_COMMAND", &mpc_cmd);
 
