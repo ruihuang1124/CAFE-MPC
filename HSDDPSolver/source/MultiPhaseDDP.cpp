@@ -5,9 +5,7 @@
 #include "HSDDP_Utils.h"
 
 
-#include <chrono>
-using namespace std::chrono;
-using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
+
 
 #ifdef TIME_BENCHMARK
 static int fit_iter = 0;
@@ -136,7 +134,8 @@ std::pair<bool, int> MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
         {
             success = true;
             break;
-        }
+        }        
+            
         eps *= option.alpha;
 #ifdef TIME_BENCHMARK
         fit_iter++;
@@ -237,7 +236,7 @@ bool MultiPhaseDDP<T>::backward_sweep(T regularization)
 }
 
 template <typename T>
-void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
+void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, const float& max_cputime)
 {
     iter_ = 0;
     ls_iter_total_ = 0;
@@ -253,20 +252,11 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
     dyn_feas_buffer.clear();
     eqn_feas_buffer.clear();
     ineq_feas_buffer.clear();
-
+    
     bool max_cputime_reached = false;
     auto solve_start = high_resolution_clock::now();
     auto check_point = high_resolution_clock::now();
     auto solve_time_elapse = duration_ms(check_point - solve_start);
-    
-#ifdef TIME_BENCHMARK
-    time_ddp.clear();
-    double time_partial = 0;
-    TIME_PER_ITERATION time_per_iter;
-    auto start = high_resolution_clock::now();
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_ms(stop - start);
-#endif
 
     hybrid_rollout(0, option);
     update_nominal_trajectory();
@@ -304,19 +294,11 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 #ifdef DEBUG_MODE
         printf("outer loop iteration %d \n", iter_ou);
 #endif
-
-#ifdef TIME_BENCHMARK
-        start = high_resolution_clock::now();
-#endif
-
-#ifdef TIME_BENCHMARK
-        stop = high_resolution_clock::now();
-        duration = duration_ms(stop - start);
-        time_partial = duration.count();
-#endif                        
+                       
         regularization = 0;
         iter_in = 0;
-        while (iter_in < option.max_DDP_iter)
+        while (iter_in < option.max_DDP_iter && 
+           !max_cputime_reached)
         {
             compute_cost(option);
             feas = measure_dynamics_feasibility();            
@@ -324,24 +306,34 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             // printf("total cost = %f, dynamics infeasibility = %f \n", actual_cost, feas);
             iter_in++;
             iter_++;
+
 #ifdef DEBUG_MODE
             printf("\t inner loop iteration %d \n", iter_in);
 #endif                  
-
-#ifdef TIME_BENCHMARK
-            start = high_resolution_clock::now();
-#endif      
+      
             // Checkpoint 1
             check_point = high_resolution_clock::now();
             solve_time_elapse = duration_ms(check_point - solve_start);            
+            printf("Checkpoint 1 time elapsed %f\n", solve_time_elapse.count());
             if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
             {
-                max_cputime_reached = true;
+                max_cputime_reached = true;                
                 break;
             }
             
 
             LQ_approximation(option);
+
+             // Checkpoint 2
+            check_point = high_resolution_clock::now();
+            solve_time_elapse = duration_ms(check_point - solve_start);            
+            printf("checkpoint 2 time elapsed %f\n", solve_time_elapse.count());
+            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
+            {
+                max_cputime_reached = true;                
+                break;
+            }
+
             int reg_iter(0);
             std::tie<bool, int>(success, reg_iter) = backward_sweep_regularized(regularization, option);
             reg_iter_total_ += reg_iter;
@@ -350,12 +342,13 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
                 goto bad_solve;
             }
 
-            // Checkpoint 2
+            // Checkpoint 3
             check_point = high_resolution_clock::now();
             solve_time_elapse = duration_ms(check_point - solve_start);            
+            printf("checkpoint 3 time elapsed %f\n", solve_time_elapse.count());
             if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
             {
-                max_cputime_reached = true;
+                max_cputime_reached = true;                
                 break;
             }
 
@@ -377,6 +370,7 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             {                
                 break;
             }            
+          
 
             bool ls_success(false);
             int ls_iter(0);
@@ -396,7 +390,17 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
 
             // Later terminates if actual cost change very small
             if ((fabs((cost_prev - actual_cost)/cost_prev) < option.cost_thresh) && (feas <= option.dynamics_feas_thresh))
-                break;                                    
+                break;         
+
+            // Checkpoint 4
+            check_point = high_resolution_clock::now();
+            solve_time_elapse = duration_ms(check_point - solve_start);       
+            printf("checkpoint 4 time elapsed %f\n", solve_time_elapse.count());     
+            if (approx_geq_scalar(solve_time_elapse.count(), max_cputime))
+            {
+                max_cputime_reached = true;                
+                break;
+            }                           
             
 #ifdef TIME_BENCHMARK
             stop = high_resolution_clock::now();
@@ -438,12 +442,13 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
             printf("optimization terminates \n");
             break;
         }
-        if (iter_ou >= option.max_AL_iter)
+        
+        if (max_cputime_reached)
         {
-            printf("maximum iteration reached \n");
+            printf("maximum cputime reached \n");
             break;
-        }   
-
+        }
+                           
         if (option.AL_active)
         {
             update_AL_params(option);
@@ -452,6 +457,12 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, float max_cputime)
         {
             update_REB_params(option);
         }
+
+        if (iter_ou >= option.max_AL_iter)
+        {
+            printf("maximum iteration reached \n");
+            break;
+        }      
     }
     
 

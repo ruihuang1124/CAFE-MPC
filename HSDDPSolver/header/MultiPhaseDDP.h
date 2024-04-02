@@ -8,6 +8,8 @@
 #include <utility> // std::pair, tuple
 #include <tuple>
 #include <lcm/lcm-cpp.hpp>
+#include <chrono>
+
 #include "SinglePhase.h"
 #include "solver_intermtraj_lcmt.hpp"
 #include "utilities.h"
@@ -16,6 +18,8 @@ using std::vector;
 using std::deque;
 using std::shared_ptr;
 using std::function;
+using namespace std::chrono;
+using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
 
 template <typename T>
 class MultiPhaseDDP
@@ -38,7 +42,7 @@ public:
 
     void set_initial_condition(DVec<T> x0_in) { x0 = x0_in; dx0.setZero(x0.size()); }
 
-    void solve(HSDDP_OPTION& option, float max_cputime=1e6); // Default max_cputime 100 s    
+    void solve(HSDDP_OPTION& option, const float& max_cputime=1e6); // Default max_cputime 100 s    
 
     void set_dynamics_init_callback(function<void(DVec<T>)> dynamics_init_callback_);
 
@@ -127,7 +131,7 @@ private:
 
     // helpful variables
     lcm::LCM traj_lcm;
-    solver_intermtraj_lcmt traj_to_publish;
+    solver_intermtraj_lcmt traj_to_publish;    
 
 private:
     function<void(DVec<T>)> dynamics_init_callback;
