@@ -132,25 +132,19 @@ void MHPCLocomotion<T>::update()
     solver.set_multiPhaseProblem(multiple_phases);
     solver.set_initial_condition(x_init_wb);
 
-// #ifdef TIME_BENCHMARK
-    // static float solve_time_acc = 0;
-    // static int solve_count = 0;
-    // auto solve_start = high_resolution_clock::now();
-// #endif
-    // solver.solve(ddp_setting, 18);
-    solver.solve(ddp_setting);
-// #ifdef TIME_BENCHMARK
-    // auto solve_stop = high_resolution_clock::now();
-    // auto solve_duration = duration_ms(solve_stop - solve_start);
-    // solve_time = solve_duration.count();
-    // solve_time_acc += solve_time;
-    // solve_count ++;
-    // mpc_cmd.solve_time = solve_time;    
-    // printf("current solve time = %f ms \n", solve_time);
-    // printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*1.0);
+    // solver.solve(ddp_setting);
+    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);    
+
+// #ifdef TIME_BENCHMARK  
+    static float solve_time_acc = 0;
+    static int solve_count = 0; 
+    solve_time_acc += mpc_cmd.solve_time;
+    solve_count ++;
+    printf("current solve time = %f ms \n", mpc_cmd.solve_time);
+    printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
 // #endif
     
-    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);
 
 
 #ifdef TIME_BENCHMARK
@@ -217,7 +211,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 8; // use 4 controls than control duration to account for delay
+    nControlSteps = 6; // use 5 controls than control duration to account for delay
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 
