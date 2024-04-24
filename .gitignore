@@ -8,6 +8,7 @@ lcmtypes/cpp/*
 lcmtypes/lcmtypes/*
 lcmtypes/python/*
 **/__pycache__
+**.pyc
 *.csv
 
 
