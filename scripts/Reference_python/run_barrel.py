@@ -29,7 +29,7 @@ pfoot_tau = []
 contact_tau = []
 eul_tau, eulrate_tau = [],[]
 time = []
-jnt_tau = []
+jnt_tau, jntvel_tau = [], []
 for k in range(N):
     t = k * dt
     pos = barrel_planner.getCoMPosition(t)
@@ -41,8 +41,9 @@ for k in range(N):
     for l in range(4):        
             pf.append(barrel_planner.getFootPosition(l, t))
             vf.append(barrel_planner.getFootVelocity(l, t))
-    # jnt_pos = robot.ik(pos, eul, np.hstack(pf))
-    jnt_pos = np.array([-0.35, -1.2, 2.4,0.35, -1.2, 2.4, -0.35,-1.2, 2.4, 0.35,-1.2, 2.4])
+    jnt_pos = robot.ik(pos, eul, np.hstack(pf))
+    # jnt_pos = np.array([-0.35, -1.2, 2.4,0.35, -1.2, 2.4, -0.35,-1.2, 2.4, 0.35,-1.2, 2.4])
+    jnt_vel = np.zeros(12)
     pos_tau.append(pos)
     vel_tau.append(vel)
     eul_tau.append(eul)
@@ -51,10 +52,11 @@ for k in range(N):
     pf_tau.append(np.hstack(pf))
     vf_tau.append(np.hstack(vf))
     jnt_tau.append(jnt_pos)
+    jntvel_tau.append(jnt_vel)
     time.append(t)
 
-utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
-# utils.publish_trajectory_lcm(pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau, contact_tau)
+# utils.write_traj_to_file(time, pos_tau, eul_tau, vel_tau, eulrate_tau, pf_tau, vf_tau, jnt_tau, contact_tau)
+utils.publish_trajectory_lcm(time, pos_tau, eul_tau, vel_tau, eulrate_tau, jnt_tau, jntvel_tau, contact_tau)
 
 # utils.plot_com_pos(time, pos_tau)
 # utils.plot_com_vel(time, vel_tau)
