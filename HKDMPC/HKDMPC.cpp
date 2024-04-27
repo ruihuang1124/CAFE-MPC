@@ -321,11 +321,5 @@ void HKDMPCSolver<T>::publish_debugfoot()
     mpc_lcm.publish("debug_foot", &debug_foot_data);
 }
 
-template <typename T>
-void HKDMPCSolver<T>::publish_solver_info()
-{
-    solver_info.n_iter = solver_info.cost.size();
-    solver_info_lcm.publish("solver_info", &solver_info);
-}
 
 template class HKDMPCSolver<double>;

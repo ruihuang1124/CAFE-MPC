@@ -72,9 +72,15 @@ public:
 
     void update_REB_params(HSDDP_OPTION& option);    
 
+    T measure_dynamics_feasibility(int norm_id=2);   
+
     T get_actual_cost() {return actual_cost;}   
 
-    T measure_dynamics_feasibility(int norm_id=2);    
+    T get_dyn_infeasibility() {return feas;} 
+
+    T get_path_constraint_violation() {return ineq_feas_buffer.back();}
+
+    T get_terminal_constraint_violation() {return eqn_feas_buffer.back();}
 
     void get_solver_info(std::vector<float>&, std::vector<float>&,
                          std::vector<float>&, std::vector<float>&);
@@ -107,9 +113,9 @@ private:
     int reg_iter_total_{0};
     float solve_time_{0};
 
-    T actual_cost;
-    T merit;
-    T feas;
+    T actual_cost{0};
+    T merit{0};
+    T feas{0};
     // T exp_cost_change;
     T dV_1;         // expected cost change due to first order
     T dV_2;         // expected cost change due to second order
