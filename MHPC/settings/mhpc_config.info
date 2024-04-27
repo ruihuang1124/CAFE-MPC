@@ -1,13 +1,13 @@
 config
 {
-    plan_dur_wb             0.30
-    plan_dur_srb            0.60
+    plan_dur_wb             0.80
+    plan_dur_srb            0.00
     dt_mpc                  0.02
     dt_wb                   0.01
     dt_srb                  0.05
     BG_alpha                10.0    
     nthreads                4
-    referenceFile           pace_br_pace
+    referenceFile           running_br
     costFile                MHPC/settings/cost_weights_barrel.JSON
     constraintParamFile     MHPC/settings/constraint_params_barrel.info
 }

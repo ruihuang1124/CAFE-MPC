@@ -18,14 +18,25 @@ Gaits{13} = "PreBarrelPace/";
 Gaits{14} = "PreBarrelPronk/";
 gait_prepross_path = "PreProcessedData/";
 
+% First running stage of running barrel roll
 gait0_num = 7;
 gait0 = read_gait_from_file(gait_prepross_path + Gaits{gait0_num});
 gait0 = truncate_gait(gait0, 1, 160);
-% 
+
+% Barrel roll stage of running barrel roll 
 gait1_num = 11;
 gait1 = read_gait_from_file(gait_prepross_path + Gaits{gait1_num});
 gait1 = truncate_gait(gait1, 14, 130);
-% 
+
+fields = fieldnames(gait1);
+for i = 1:length(fields)
+    field = fields{i};
+    val = getfield(gait1, field);
+    val_new = [val(1:67, :); repmat(val(67,:),[15,1]); val(68:end,:)];
+    gait1 = setfield(gait1, field, val_new);
+end
+
+% Second running state of running barrel roll 
 gait2_num = 7;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 
@@ -33,7 +44,7 @@ gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 % gait = gait0;
 
 %% Barrel roll -> loco
-% % Offset the x,y positions in gait 2 to start at the end of gait 1
+% Offset the x,y positions in gait 2 to start at the end of gait 1
 % gait = gait1;
 % gait2.body_states(:,[4,5]) = gait2.body_states(:,[4,5]) + gait.body_states(end,[4,5]);
 % gait2.foot_placements(:,[1,4,7,10]) = gait2.foot_placements(:,[1,4,7,10]) ... 

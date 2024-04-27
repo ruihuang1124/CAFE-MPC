@@ -461,13 +461,13 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<WBPhase_T>phase, int id
     jointLimit->initialize_params(joint_reb_param);
     phase->add_pathConstraint(jointLimit);
 
-    // /* Minimum Height constraint */
-    // shared_ptr<MHPCConstraints::WBMinimumHeight<T>> wbMinHeightConstraint;
-    // wbMinHeightConstraint = std::make_shared<MHPCConstraints::WBMinimumHeight<T>>();
-    // wbMinHeightConstraint->update_horizon_len(pdata->wb_phase_horizons[idx]);
-    // wbMinHeightConstraint->create_data();
-    // wbMinHeightConstraint->initialize_params(minheight_reb_param);
-    // phase->add_pathConstraint(wbMinHeightConstraint);
+    /* Minimum Height constraint */
+    shared_ptr<MHPCConstraints::WBMinimumHeight<T>> wbMinHeightConstraint;
+    wbMinHeightConstraint = std::make_shared<MHPCConstraints::WBMinimumHeight<T>>();
+    wbMinHeightConstraint->update_horizon_len(pdata->wb_phase_horizons[idx]);
+    wbMinHeightConstraint->create_data();
+    wbMinHeightConstraint->initialize_params(minheight_reb_param);
+    phase->add_pathConstraint(wbMinHeightConstraint);
 
     /* Set GRF constraints if any*/
     if (phase_contact.cwiseEqual(1).any())

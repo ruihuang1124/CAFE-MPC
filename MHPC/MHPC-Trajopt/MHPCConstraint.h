@@ -145,7 +145,7 @@ namespace MHPCConstraints
         MatMN<T, 1, WBM::xs> C;        
 
         // Default lower and upper bound
-        T h_min_{0.17};
+        T h_min_{0.20};
 
     public:
         WBMinimumHeight(){

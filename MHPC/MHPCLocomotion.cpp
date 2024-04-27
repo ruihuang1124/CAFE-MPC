@@ -49,9 +49,6 @@ void MHPCLocomotion<T>::initialize()
     opt_problem.pretty_print();
 #endif
 
-    // mpc_time = 0;
-    // mpc_time_prev = 0;
-
     // Assemble the multi-phase probelm and solve it with MSDDP
     MultiPhaseDDP<T> solver;
     deque<shared_ptr<SinglePhaseBase<T>>> multiple_phases;
@@ -77,6 +74,7 @@ void MHPCLocomotion<T>::initialize()
 #endif
     solver.set_multiPhaseProblem(multiple_phases);
     solver.solve(ddp_setting);
+
 #ifdef TIME_BENCHMARK
     auto stop = high_resolution_clock::now();
     auto duration = duration_ms(stop - start);
@@ -85,12 +83,17 @@ void MHPCLocomotion<T>::initialize()
 
     mpc_iter = 0;
 
-    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);
-
     printf("MHPC solver is initialized successfully \n\n");
 
     publish_mpc_cmd();
 
+    solver.get_solver_info(solver_info.n_iter, solver_info.n_ls_iter, solver_info.n_reg_iter, solver_info.solve_time);
+    solver_info.cost = solver.get_actual_cost();
+    solver_info.dyn_feas = solver.get_dyn_infeasibility();
+    solver_info.eq_violation = solver.get_terminal_constraint_violation();
+    solver_info.ineq_violation = solver.get_path_constraint_violation();
+    solver_lcm.publish("DDP_Solver_Info", &solver_info);
+    
 #ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);
 #endif
@@ -132,34 +135,43 @@ void MHPCLocomotion<T>::update()
     solver.set_multiPhaseProblem(multiple_phases);
     solver.set_initial_condition(x_init_wb);
 
-    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.8);
-    // solver.solve(ddp_setting);
-    solver.get_solver_info(mpc_cmd.iters, mpc_cmd.ls_iters, mpc_cmd.reg_iters, mpc_cmd.solve_time);    
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.9);
+    // solver.solve(ddp_setting);   
+    
+    publish_mpc_cmd();
 
+    solver.get_solver_info(solver_info.n_iter, solver_info.n_ls_iter, solver_info.n_reg_iter, solver_info.solve_time);
+    solver_info.cost = solver.get_actual_cost();
+    solver_info.dyn_feas = solver.get_dyn_infeasibility();
+    solver_info.eq_violation = solver.get_terminal_constraint_violation();
+    solver_info.ineq_violation = solver.get_path_constraint_violation();
+    solver_lcm.publish("DDP_Solver_Info", &solver_info);
+    
 // #ifdef TIME_BENCHMARK  
-    static float solve_time_acc = 0;
+    static float solve_time_acc = 0.0;
+    static float solve_time_max = 0.0;
     static int solve_count = 0; 
-    solve_time_acc += mpc_cmd.solve_time;
+    solve_time_acc += solver_info.solve_time;
     solve_count ++;
-    printf("current solve time = %f ms \n", mpc_cmd.solve_time);
+    solve_time_max = fmax(solve_time_max, solver_info.solve_time);
+    printf("current solve time = %f ms \n", solver_info.solve_time);
     printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
+    printf("max solve time so far = %f ms \n", solve_time_max);    
 // #endif
     
-
-
 #ifdef TIME_BENCHMARK
     static float time_publish_mpc_acc = 0;
     static int count_publish_mpc = 0;
     auto time_pub_mpc_start = high_resolution_clock::now();
 #endif
-    publish_mpc_cmd();
+
 #ifdef TIME_BENCHMARK
     auto time_pub_mpc_end = high_resolution_clock::now();
     auto duration_pub_mpc = duration_ms(time_pub_mpc_end - time_pub_mpc_start);
     time_publish_mpc_acc += duration_pub_mpc.count();
     count_publish_mpc ++;
     std::cout << "average publishing time = " << time_publish_mpc_acc/count_publish_mpc << " ms \n";
-#endif
+#endif    
 
 #ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);
@@ -211,7 +223,7 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
 
     int nControlSteps = opt_problem.get_num_control_steps();
 
-    nControlSteps = 6; // use 5 controls than control duration to account for delay
+    nControlSteps = 8; 
 
     mpc_cmd.N_mpcsteps = nControlSteps;
 

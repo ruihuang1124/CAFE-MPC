@@ -19,6 +19,7 @@ class MHPCLocomotion
 {
 public:
     MHPCLocomotion() : mpc_lcm(getLcmUrl(255)),  
+                       solver_lcm(getLcmUrl(255)),
                        solve_time(0)
     {                          
         // Check LCM initialization
@@ -66,8 +67,10 @@ public:
     // LCM message
     MHPC_Data_lcmt mpc_data;
     MHPC_Command_lcmt mpc_cmd;
+    solver_info_lcmt solver_info;
     
     lcm::LCM mpc_lcm;
+    lcm::LCM solver_lcm;
 
     // mutex lock
     std::mutex mpc_mutex;    
