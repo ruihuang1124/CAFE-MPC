@@ -2,7 +2,7 @@ GRF_ReB
 {
     delta           0.1
     delta_min       0.1
-    eps             0.5
+    eps             0.3
 }
 
 Torque_ReB
