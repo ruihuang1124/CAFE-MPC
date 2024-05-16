@@ -178,10 +178,10 @@ int main()
         {
             auto resetmap_callback = bind(&MHPCReset<double>::reset_map, reset_ptr,
                                           pc::_1, pc::_2,
-                                          contacts[i], contacts[i], ModelType::WB, ModelType::WB);
+                                          contacts[i], contacts[i+1], ModelType::WB, ModelType::WB);
             auto resetmap_partial_callback = bind(&MHPCReset<double>::reset_map_partial, reset_ptr,
                                                   pc::_1, pc::_2,
-                                                  contacts[i], contacts[i], ModelType::WB, ModelType::WB);
+                                                  contacts[i], contacts[i+1], ModelType::WB, ModelType::WB);
 
             phase->set_resetmap(resetmap_callback);
             phase->set_resetmap_partial(resetmap_partial_callback);
