@@ -2,6 +2,7 @@
 .vscode
 HKDMPC/log/**
 MHPC/log/**
+data/
 lcmtypes/java
 lcmtypes/file_list.txt
 lcmtypes/cpp/*
@@ -9,6 +10,6 @@ lcmtypes/lcmtypes/*
 lcmtypes/python/*
 **/__pycache__
 **.pyc
-*.csv
+scripts/Reference_matlab/PostProcessedData/*.csv
 
 
