@@ -1,0 +1,25 @@
+ddp
+{
+    alpha                   0.5
+    gamma                   0.1
+    update_penalty          5
+    update_relax            1
+    update_ReB              1
+    update_regularization   4
+    max_DDP_iter            10
+    max_AL_iter             30
+    max_DDP_iter_runtime    1
+    max_AL_iter_runtime     3
+    cost_thresh             1e-2
+    tconstr_thresh          1e-3
+    pconstr_thresh          1e-3
+    dynamics_feas_thresh    1e-3
+    merit_rho               1e3
+    merit_scale             0.1
+    merit_offset            1
+    AL_active               true
+    ReB_active              true
+    smooth_active           false
+    MS                      true
+    nsteps_per_node         1
+}

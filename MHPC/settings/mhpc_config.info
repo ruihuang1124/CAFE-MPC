@@ -1,0 +1,13 @@
+config
+{
+    plan_dur_wb             0.35
+    plan_dur_srb            0.60
+    dt_mpc                  0.02
+    dt_wb                   0.01
+    dt_srb                  0.05
+    BG_alpha                10.0    
+    nthreads                4
+    referenceFile           flytrot
+    costFile                MHPC/settings/cost_weights_regular.JSON
+    constraintParamFile     MHPC/settings/constraint_params_regular.info
+}
