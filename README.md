@@ -27,6 +27,10 @@ This implementation uses [Eigen](https://gitlab.com/libeigen/eigen) for linear a
     make
     sudo make install
     ```
+- Check with OpenMP is installed. It should come with GCC. If not, do the following
+    ```
+    sudo apt-get install --reinstall openmpi-bin libopenmpi-dev
+    ```
 - Note: By default, Pinocchio2 would install Eigen3.3. If you install Eigen3.4 first, Pinocchio2 will overwrite it. Therefore, it is suggested install Eigen3.4 after the installation of Pinocchio.
 
 
