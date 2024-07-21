@@ -24,7 +24,7 @@ void HKDMPCSolver<T>::initialize()
     loadHSDDPSetting(fname_ddp_setting, ddp_options);
 
     mpc_config.plan_duration = .6;
-    mpc_config.nsteps_between_mpc = 1;
+    mpc_config.nsteps_between_mpc = 2;
     mpc_config.timeStep = 0.01;
     dt_mpc = mpc_config.timeStep;
 

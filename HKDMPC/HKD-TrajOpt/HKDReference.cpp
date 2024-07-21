@@ -39,7 +39,12 @@ void HKDSinglePhaseReference::get_reference_at_t(VecM<double, 24>& xt, float t)
         return;
     }
 
-    xt.head<12>() = quad_state_t_ptr->body_state;   //body state: euler, pos, ang, vel
+    //ref body state:  pos, euler, vel, ang
+    //hkd body state:  euler, pos, ang, vel
+    xt.segment<3>(0) = quad_state_t_ptr->body_state.segment<3>(3);
+    xt.segment<3>(3) = quad_state_t_ptr->body_state.segment<3>(0);   
+    xt.segment<3>(6) = quad_state_t_ptr->body_state.segment<3>(9);   
+    xt.segment<3>(9) = quad_state_t_ptr->body_state.segment<3>(6);   
 
     for (int leg = 0; leg < 4; leg++)
     {

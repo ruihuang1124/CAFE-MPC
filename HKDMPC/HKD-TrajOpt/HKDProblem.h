@@ -97,6 +97,16 @@ public:
     const static size_t us = 24;
     const static size_t ys = 0;
 
+    typedef typename HKD::Model<T>::StateType      StateType;
+    typedef typename HKD::Model<T>::ContrlType     ContrlType;        
+    typedef typename HKD::Model<T>::OutputType     OutputType;        
+    typedef typename HKD::Model<T>::JointType      JointType;         
+    typedef typename HKD::Model<T>::StateMap       StateMap;          
+    typedef typename HKD::Model<T>::ContrlMap      ContrlMap;         
+    typedef typename HKD::Model<T>::OutputMap      OutputMap;         
+    typedef typename HKD::Model<T>::DirectMap      DirectMap;         
+    typedef typename HKD::Model<T>::CtactStatusType CtactStatusType;  
+
 public:
     HKDProblem(){plan_duration = 0; dt_sim = 0; nsteps_between_mpc = 0; dt_mpc = 0;}   
 

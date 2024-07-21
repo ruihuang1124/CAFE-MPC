@@ -9,7 +9,7 @@ void HKDFootPlaceReg<T>::running_cost(RCost& rcost, const State& x, const Contrl
     quad_astate = quad_reference->get_a_reference_ptr_at_t(t);
 
     pCoM << x.template segment<3>(3);
-    pCoM_r << quad_astate->body_state.segment<3>(3);
+    pCoM_r << quad_astate->body_state.segment<3>(0);
                  
     prel = x.tail(12) - pCoM.template replicate<4,1>();
     prel_r = quad_astate->foot_placements - pCoM_r.replicate<4,1>();
@@ -26,7 +26,7 @@ void HKDFootPlaceReg<T>::running_cost_par(RCost& rcost, const State& x, const Co
     quad_astate = quad_reference->get_a_reference_ptr_at_t(t);
 
     pCoM << x.template segment<3>(3);
-    pCoM_r << quad_astate->body_state.segment<3>(3);
+    pCoM_r << quad_astate->body_state.segment<3>(0);
 
     prel = x.tail(12) - pCoM.template replicate<4,1>();
     prel_r = quad_astate->foot_placements - pCoM_r.replicate<4,1>();
@@ -41,7 +41,7 @@ void HKDFootPlaceReg<T>::terminal_cost(TCost& tcost, const State& x, float tend)
     quad_astate = quad_reference->get_a_reference_ptr_at_t(tend);
 
     pCoM << x.template segment<3>(3);
-    pCoM_r << quad_astate->body_state.segment<3>(3);
+    pCoM_r << quad_astate->body_state.segment<3>(0);
 
     prel = x.tail(12) - pCoM.template replicate<4,1>();
     prel_r = quad_astate->foot_placements - pCoM_r.replicate<4,1>();
@@ -55,7 +55,7 @@ void HKDFootPlaceReg<T>::terminal_cost_par(TCost& tcost, const State& x, float t
     quad_astate = quad_reference->get_a_reference_ptr_at_t(tend);
     
     pCoM << x.template segment<3>(3);
-    pCoM_r << quad_astate->body_state.segment<3>(3);
+    pCoM_r << quad_astate->body_state.segment<3>(0);
 
     prel = x.tail(12) - pCoM.template replicate<4,1>();
     prel_r = quad_astate->foot_placements - pCoM_r.replicate<4,1>();

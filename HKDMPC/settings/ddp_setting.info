@@ -9,7 +9,7 @@ ddp
     max_DDP_iter            10
     max_AL_iter             5
     max_DDP_iter_runtime    1
-    max_AL_iter_runtime     2
+    max_AL_iter_runtime     3
     cost_thresh             1e-3
     tconstr_thresh          1e-3
     pconstr_thresh          1e-3

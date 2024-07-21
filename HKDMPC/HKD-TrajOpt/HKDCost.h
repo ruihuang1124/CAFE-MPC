@@ -11,27 +11,27 @@ public:
     HKDTrackingCost(VecM<int, 4> contact) : QuadraticTrackingCost<T, HKD::xs, HKD::us, HKD::ys>()
     {
         /* Intermediate state weighting matrix */
-        VecM<T, 3> q_eul(1, 4, 5);
+        VecM<T, 3> q_eul(1, 4, 4);
         VecM<T, 3> q_pos(1, 1, 30);
-        VecM<T, 3> q_omega(.2, .2, .2);
-        VecM<T, 3> q_v(4, 1, .5);
+        VecM<T, 3> q_omega(1.0, 0.5, 0.2);
+        VecM<T, 3> q_v(1, 1, 1);
         VecM<T, 12> q_qJ;                        
-        q_qJ << VecM<T, 3>::Constant(.2 * (1 - contact[0])),
-                VecM<T, 3>::Constant(.2 * (1 - contact[1])),
-                VecM<T, 3>::Constant(.2 * (1 - contact[2])),
-                VecM<T, 3>::Constant(.2 * (1 - contact[3]));
+        q_qJ << VecM<T, 3>::Constant(.1 * (1 - contact[0])),
+                VecM<T, 3>::Constant(.1 * (1 - contact[1])),
+                VecM<T, 3>::Constant(.1 * (1 - contact[2])),
+                VecM<T, 3>::Constant(.1 * (1 - contact[3]));
        this->Q.diagonal() << q_eul, q_pos, q_omega, q_v, q_qJ;
         
         /* Terminal state weighting matrix */
         VecM<T, 24> scale;
         scale << 1, 1, 2, 1, 1, 20, 
-                .3, .3, .3,  1, 3, 1, 
+                1.0, 0.2, 0.1,  1, 1, 1, 
                 .01 * VecM<T, 12>::Ones();
         this->Qf = 20 * scale.asDiagonal() * this->Q;
 
         /* Control weighting matrices */
         VecM<T, 24> r;        
-        r.template head<12>() = .2 * VecM<T,12>::Ones();      // GRF
+        r.template head<12>() = .1 * VecM<T,12>::Ones();      // GRF
         r.template tail<12>() = .1 * VecM<T,12>::Ones();  // Commanded joint vel       
         this->R = r.asDiagonal();      
     }       
@@ -53,10 +53,11 @@ public:
     CostBase<T, HKD::xs, HKD::us, HKD::ys>("Foot regularization"){
         Qfoot.setZero();
         dprel_dx.setZero();
-        Qfoot.diagonal() << 3*contact[0],contact[0],0,
-                            3*contact[1],contact[1],0,
-                            3*contact[2],contact[2],0,
-                            3*contact[3],contact[3],0;              
+        Qfoot.diagonal() << contact[0],contact[0],0,
+                            contact[1],contact[1],0,
+                            contact[2],contact[2],0,
+                            contact[3],contact[3],0;              
+        Qfoot *= 5.0;                            
         dprel_dx.middleCols(3,3) << -contact[0]*Mat3<T>::Identity(),
                                     -contact[1]*Mat3<T>::Identity(),
                                     -contact[2]*Mat3<T>::Identity(),

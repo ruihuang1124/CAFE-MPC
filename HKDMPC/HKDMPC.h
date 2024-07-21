@@ -27,9 +27,9 @@ public:
                   solver_info_lcm(getLcmUrl(255))
     {
         // Setup reference
-        string reference_file_path = "../Reference/Data/quad_reference.csv";       
+        string reference_file_path = "../Reference/Data/bound/quad_reference.csv";       
 
-        quad_reference.load_top_level_data(reference_file_path);                        
+        quad_reference.load_top_level_data(reference_file_path, true);                       
 
         // Check LCM initialization
         if (!mpc_lcm.good())

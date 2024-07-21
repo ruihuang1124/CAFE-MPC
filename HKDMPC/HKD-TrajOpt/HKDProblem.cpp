@@ -230,7 +230,12 @@ void HKDProblem<T>::create_problem_one_phase(shared_ptr<SinglePhase<T, 24, 24, 0
     auto dynamics_callback = bind(&HKD::Model<T>::dynamics, &hkdModel,
                                   pc::_1, pc::_2, pc::_3, pc::_4, pc::_5, 
                                   phase_contact, (T)dt_sim);
-    auto dynamics_partial_callback =
+    // using HKD_MOMEL_T = HKD::Model<T>;
+    vector<function<void(StateMap&, ContrlMap&, 
+                         OutputMap&, DirectMap&, 
+                         StateType&, ContrlType&, T)>>dynamics_partial_callback(1);
+
+    dynamics_partial_callback[0] =
         bind(&HKD::Model<T>::dynamics_partial, &hkdModel,
              pc::_1, pc::_2, pc::_3, pc::_4, pc::_5,pc:: _6, pc::_7, 
              phase_contact, (T)dt_sim);

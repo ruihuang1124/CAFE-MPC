@@ -17,17 +17,17 @@ namespace HKD
     class Model
     {
     public:
-        typedef VecM<T, xs> StateType;
-        typedef VecM<T, us> ContrlType;
-        typedef VecM<T, ys> OutputType;
-        typedef VecM<T, 12> JointType;
+        using StateType     = VecM<T, xs> ;
+        using ContrlType    = VecM<T, us> ;
+        using OutputType    = VecM<T, ys> ;
+        using JointType     = VecM<T, 12> ;
 
-        typedef MatMN<T, xs, xs> StateMap;
-        typedef MatMN<T, xs, us> ContrlMap;
-        typedef MatMN<T, ys, xs> OutputMap;
-        typedef MatMN<T, ys, us> DirectMap;
+        using StateMap      = MatMN<T, xs, xs> ;
+        using ContrlMap     = MatMN<T, xs, us> ;
+        using OutputMap     = MatMN<T, ys, xs> ;
+        using DirectMap     = MatMN<T, ys, us> ;
 
-        typedef VecM<int, 4> CtactStatusType;
+        using CtactStatusType = VecM<int, 4> ;
 
     public:
         void dynamics(StateType &xnext, OutputType &y,
