@@ -19,6 +19,11 @@ class ReferenceManager:
     def setEndGait(self, endGait=None) -> None:
         self.gaitSchedule_.setEndGait(endGait)
     
+    def setGaitSchedule(self, gaitSchedule):
+        self.gaitSchedule_ = gaitSchedule
+        self.footholdPlanner_ = FootholdPlanner(self.gaitSchedule_, self.comPlanner_)
+        self.swingPlanner_ = SwingTrajectoryPlanner(self.gaitSchedule_, self.footholdPlanner_)
+        
     def setInitialCoMPosition(self, xinit, yinit, zinit) -> None:
         self.comPlanner_.setInitialCondition(xinit, yinit, zinit)
 
@@ -36,6 +41,10 @@ class ReferenceManager:
         self.gaitSchedule_.buildSchedule(self.planHorizon_)
         self.footholdPlanner_.computeFootholdLocations()
     
+    def computeReferenceTrajectoryOnce2(self) -> None:
+        self.gaitSchedule_.buildSchedule2()
+        self.footholdPlanner_.computeFootholdLocations()
+
     def getModeSchedule(self):
         return self.gaitSchedule_.getModeSchedule()
 

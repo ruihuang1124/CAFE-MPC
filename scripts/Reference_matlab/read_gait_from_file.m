@@ -1,4 +1,7 @@
 function gait = read_gait_from_file(gait)
+% body_state: eul, p_xyz, eul rate, v_xyz
+% euler angle: ZYX in local frame (yaw pitch roll)
+% leg orders: FL, FR, HL, HR
     body_states = readmatrix(gait + "body_state.csv");
     contacts = readmatrix(gait + "contact.csv");
     foot_placements = readmatrix(gait + "ee_pos.csv");

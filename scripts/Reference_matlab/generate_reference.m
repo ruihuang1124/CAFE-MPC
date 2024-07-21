@@ -40,8 +40,6 @@ end
 gait2_num = 7;
 gait2 = read_gait_from_file(gait_prepross_path + Gaits{gait2_num});
 
-%% Regular locomotion gait
-% gait = gait0;
 
 %% Barrel roll -> loco
 % Offset the x,y positions in gait 2 to start at the end of gait 1
@@ -71,6 +69,9 @@ gait2.foot_placements(:,[2,5,8,11]) = gait2.foot_placements(:,[2,5,8,11]) ...
                                     + gait.foot_placements(end, [2,5,8,11]);
 gait2.body_states(:,3) = 2*pi;
 gait = combine_two_gaits(gait, gait2);
+
+%% Regular locomotion gait
+gait = read_gait_from_file(gait_prepross_path + Gaits{5});
 
 %% write to file
 write_gait_to_file(gait);

@@ -428,14 +428,14 @@ void MHPCProblem<T>::create_problem_one_phase(shared_ptr<WBPhase_T>phase, int id
     /* set tracking cost */    
     phase->add_cost(wb_track_cost);
 
-    // /*Set foot regularization */
-    // phase->add_cost(wb_foot_reg);
+    /*Set foot regularization */
+    phase->add_cost(wb_foot_reg);
 
-    // /* Swing foot posiiton tracking */   
-    // phase->add_cost(swing_pos_tracking);
+    /* Swing foot posiiton tracking */   
+    phase->add_cost(swing_pos_tracking);
 
-    // /* Swing foot velocity tracking */
-    // phase->add_cost(swing_vel_tracking);
+    /* Swing foot velocity tracking */
+    phase->add_cost(swing_vel_tracking);
 
     /* Torque limit */    
     shared_ptr<MHPCConstraints::TorqueLimit<T>> torqueLimit;

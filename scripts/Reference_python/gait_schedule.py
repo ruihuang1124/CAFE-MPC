@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from turtle import pd
 import numpy as np
 import quad_mode_definition as quad_mode
 from utils import (approx__leq, approx_geq)
@@ -47,6 +48,7 @@ class ModeSchedule:
     def __init__(self, modeSequence=[], switchingTimes=[]):        
         self.modeSequence_ = modeSequence      # list of size N
         self.switchingTimes_ = switchingTimes     # list of size N + 1       
+        self.finalTime = 0
     
     def getNumberModes(self):
         if (len(self.modeSequence_) > 0) & (len(self.switchingTimes_) != len(self.modeSequence_) + 1):
@@ -73,7 +75,10 @@ class GaitSchedule:
         self.initialGait_ = Stance                  
         self.periodicGait_ = None
         self.modeSchedule_ = None
+        self.switchingTimes_ = None
         self.endGait_ = None
+        self.finalTime_ = 0
+        self.gaitLists_ = []
 
         # Schedule of each independent leg
         self.legContactStatus_ = [[],[],[],[]]  # List of 4 lists, each representing a contact status for one foot
@@ -85,10 +90,18 @@ class GaitSchedule:
     def setEndGait(self, endGait = None):
         self.endGait_ = endGait
     
+    def addOneGait(self, gait):
+        self.gaitLists_.append(gait)
+
     def buildSchedule(self, finalTime) -> None:
         self.buildModeSchedule_(finalTime)
         self.buildLegContactSchedule_()
+        self.finalTime_ = finalTime
     
+    def buildSchedule2(self) -> None:
+        self.buildModeSchedule2_()
+        self.buildLegContactSchedule_()
+
     def buildModeSchedule_(self, finalTime) -> None: 
         modeSequence = self.initialGait_.modeSequence
         switchingTimes = self.initialGait_.switchingTimes
@@ -105,19 +118,32 @@ class GaitSchedule:
                 switchingTimes = np.append(switchingTimes, switchTime)
                 if switchTime >= finalTime:
                     break
-        
+    
         if self.endGait_ != None:
             modeSequence = np.hstack((modeSequence, self.endGait_.modeSequence))
-            switchingTimes = np.hstack((switchingTimes, self.endGait_.switchingTimes[1:] + finalTime))        
+            switchingTimes = np.hstack((switchingTimes, self.endGait_.switchingTimes[1:] + finalTime))             
         self.modeSchedule_ = ModeSchedule(modeSequence, switchingTimes)
     
+    def buildModeSchedule2_(self)-> None:
+        modeSequence = np.array([], dtype= int)
+        switchingTimes = np.array([0.0])
+        endTime = 0
+        for gait in self.gaitLists_:
+            for i in range(len(gait.modeSequence)):
+                modeSequence = np.append(modeSequence, gait.modeSequence[i])
+                switchTime = endTime + gait.switchingTimes[i+1]
+                switchingTimes = np.append(switchingTimes, switchTime)
+            endTime = switchTime       
+        self.modeSchedule_ = ModeSchedule(modeSequence, switchingTimes)
+        self.switchingTimes_ = switchingTimes
+        self.finalTime_ = endTime       
+
     def buildLegContactSchedule_(self) -> None:
         # Initialize schedule of each indepedent leg
         init_mode = self.modeSchedule_.getModeSequence()[0]
         init_switchingTime = self.modeSchedule_.getSwitchingTimes()[0]
         init_contact = quad_mode.modeNumber2stanceLegs(init_mode)
-        num_modes = self.modeSchedule_.getNumberModes()
-
+        num_modes = self.modeSchedule_.getNumberModes()       
         for l in range(4):
             self.legContactStatus_[l].append(init_contact[l])
             self.legSwitchingTimes_[l].append(init_switchingTime)
@@ -162,6 +188,9 @@ class GaitSchedule:
 
         contactFlag = quad_mode.modeNumber2stanceLegs(mode)
         return contactFlag
+    
+    def getFinalTime(self):
+        return self.finalTime_
 
 
 
