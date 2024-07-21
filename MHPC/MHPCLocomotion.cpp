@@ -135,7 +135,7 @@ void MHPCLocomotion<T>::update()
     solver.set_multiPhaseProblem(multiple_phases);
     solver.set_initial_condition(x_init_wb);
 
-    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*4.0);
+    solver.solve(ddp_setting, mpc_config.dt_mpc*1000*0.9);
     // solver.solve(ddp_setting);   
     
     publish_mpc_cmd();
