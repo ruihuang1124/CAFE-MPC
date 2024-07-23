@@ -28,7 +28,7 @@ def visualize_motion_lcm_handler(channel, data):
         quat_k = np.array(robot.pb.getQuaternionFromEuler(rpy_k))
         pos_k = np.array(msg.pos[k])             
         qJ_k = np.array(msg.qJ[k])                
-        if k%5==0:
+        if k%1==0:
             animator.set_pose(pos_k, quat_k, qJ_k)                    
             if k > msg.wb_sz -1:
                 animator.hide_legs()
