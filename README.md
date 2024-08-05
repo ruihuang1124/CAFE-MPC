@@ -3,39 +3,18 @@ This implementation uses [Eigen](https://gitlab.com/libeigen/eigen) for linear a
 
 ### **Installation instructions for the third-party libraries**
 - [Pinocchio 2.6.10](git@github.com:stack-of-tasks/pinocchio.git): Folow the instructions [here](https://stack-of-tasks.github.io/pinocchio/download.html) to install Pinocchio via robotpkg. As a reminder, do NOT forget configuring the environment variables, so that CMake can find Pinocchio while building.
-- [LCM1.4.0](https://github.com/lcm-proj/lcm/releases/tag/v1.4.0):
-    
-    Download lcm v1.4.0 and unzip to lcm
-    ```
-    cd lcm
-    mkdir build
-    cd build && cmake ..
-    make
-    sudo make install
-    ```
-- [Boost1.71](https://www.boost.org/users/history/)
-    ```
-    sudo apt-get update
-    sudo apt-get install libboost1.71-all-dev
-    ```
-- [Eigen3.4](https://gitlab.com/libeigen/eigen/-/releases)
+- [LCM1.4.0](https://github.com/lcm-proj/lcm/releases/tag/v1.4.0), [Boost1.71](https://www.boost.org/users/history/), and [Eigen3.4](https://gitlab.com/libeigen/eigen/-/releases) could be installed by running the scripts
 
-    Download the source code of [Eigen3.4](https://gitlab.com/libeigen/eigen/-/releases) and unzip it to Eigen3.4
     ```
-    mkdir build
-    cd build && cmake ..
-    make
-    sudo make install
+        ./install_dependencies.sh
     ```
-- Check with OpenMP is installed. It should come with GCC. If not, do the following
-    ```
-    sudo apt-get install --reinstall openmpi-bin libopenmpi-dev
-    ```
+
+
 - Note: By default, Pinocchio2 would install Eigen3.3. If you install Eigen3.4 first, Pinocchio2 will overwrite it. Therefore, it is suggested install Eigen3.4 after the installation of Pinocchio.
 
 
 
-## **Build**
+## **Build CAFE-MPC**
 
 Once Eigen and LCM are successfully installed, generate necessary lcm types
 
@@ -52,11 +31,49 @@ cmake ..
 make -j4
 ```
 
-To run the CAFE-MPC controller
-```bash
-cd build
-MHPC/mhpc_run
+So far, you have built the CAFE-MPC controller. It has to function with a simulator and a whole-body controller.
+
+## **Simulation and Value-Based Whole-Body Controller**
+We use Cheetah-Software for dynamics simulation. The Value-Based Whole-body controller is implemented in Cheetah-Software as well. To buld Cheetah-Software, you need to install dependencies with the following script
+
+```
+./install_dependencies_cheetah_software.sh
+```
+Clone the Cheetah-Software repo:
+```
+cd ..
+git clone -b -b cafempc_low_level https://github.com/heli-sudoo/Cheetah-Software-He.git Cheetah-Software
+```
+Build Cheetah-Software:
+```
+cd Cheetah-Software/scripts
+./make_types.sh
+cd .. 
+mkdir build && cd build
+cmake ..
+make -j4
 ```
 
-## **Configure MPC**
-To be done
+## **Run Simulator, VWBC, CAFE-MPC**
+Open three terminals, one for simulation, one for low-level VWBC, and one for CAFE-MPC. 
+
+In the **first terminal** 
+```
+cd Cheetah-Software/build
+sim/sim
+```
+This opens two windows, one for simulation, the other one is a control panel.
+
+In the **second terminal**,
+```
+user/MHPC_LLController/mhpc_llctrl m s
+```
+You will see the robot moves its legs to a zero configuration and stand up.
+
+In the **third terminal**,
+```bash
+cd CAFE-MPC/build
+MHPC/mhpc_run
+```
+In the control panel, switch the `contrl_mode` to 2. You will see the robot starts performing locomotion.
+
