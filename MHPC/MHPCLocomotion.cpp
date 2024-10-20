@@ -12,12 +12,6 @@
 using namespace std::chrono;
 using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
 
-#ifdef TIME_BENCHMARK
-#include <chrono>
-using namespace std::chrono;
-using duration_ms = std::chrono::duration<float, std::chrono::milliseconds::period>;
-#endif // TIME_BENCHMARK
-
 template <typename T>
 void MHPCLocomotion<T>::initialize()
 {
@@ -68,18 +62,8 @@ void MHPCLocomotion<T>::initialize()
     }
 
     solver.set_initial_condition(x_init_wb);
-
-#ifdef TIME_BENCHMARK
-    auto start = high_resolution_clock::now();
-#endif
     solver.set_multiPhaseProblem(multiple_phases);
     solver.solve(ddp_setting);
-
-#ifdef TIME_BENCHMARK
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_ms(stop - start);
-    solve_time = duration.count();
-#endif
 
     mpc_iter = 0;
 
@@ -147,7 +131,6 @@ void MHPCLocomotion<T>::update()
     solver_info.ineq_violation = solver.get_path_constraint_violation();
     solver_lcm.publish("DDP_Solver_Info", &solver_info);
     
-// #ifdef TIME_BENCHMARK  
     static float solve_time_acc = 0.0;
     static float solve_time_max = 0.0;
     static int solve_count = 0; 
@@ -157,21 +140,7 @@ void MHPCLocomotion<T>::update()
     printf("current solve time = %f ms \n", solver_info.solve_time);
     printf("average solve time = %f ms \n", solve_time_acc/solve_count);    
     printf("max solve time so far = %f ms \n", solve_time_max);    
-// #endif
-    
-#ifdef TIME_BENCHMARK
-    static float time_publish_mpc_acc = 0;
-    static int count_publish_mpc = 0;
-    auto time_pub_mpc_start = high_resolution_clock::now();
-#endif
-
-#ifdef TIME_BENCHMARK
-    auto time_pub_mpc_end = high_resolution_clock::now();
-    auto duration_pub_mpc = duration_ms(time_pub_mpc_end - time_pub_mpc_start);
-    time_publish_mpc_acc += duration_pub_mpc.count();
-    count_publish_mpc ++;
-    std::cout << "average publishing time = " << time_publish_mpc_acc/count_publish_mpc << " ms \n";
-#endif    
+       
 
 #ifdef DEBUG_MODE
     mhpc_viz.publishWBTrajectory(&opt_problem_data, mpc_config);

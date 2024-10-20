@@ -5,9 +5,6 @@ add_library(hsddp SHARED ${sources})
 # Optional debug mode 
 option(DEBUG_DDP OFF)
 
-# Optional time benchmark mode
-option(TIME_BENCHMARK_DDP OFF)
-
 find_package(Boost REQUIRED)
 
 find_package(OpenMP)
@@ -27,8 +24,3 @@ if (DEBUG_DDP)
     target_compile_definitions(hsddp PUBLIC DEBUG_MODE)
 endif()
 
-# If in time benchmark mode, set precompiler to TIME_BENCHMARK_DDP
-if (TIME_BENCHMARK_DDP)
-    message("Time benchmark mode is set for HSDDP")
-    target_compile_definitions(hsddp PUBLIC TIME_BENCHMARK)
-endif()
