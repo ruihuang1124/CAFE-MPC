@@ -258,7 +258,6 @@ T Trajectory<T, xs, us, ys>::measure_dynamics_feasibility(int norm_id)
     return defect_norm;
 }
 
-// template class TrajectorySequence<ModelInfo<double,24,24,0>,ModelInfo<double,24,24,0>>;
 template class Trajectory<double, 24, 24, 0>;
 template class Trajectory<double, 12, 12, 0>;
 template class Trajectory<double, 36, 12, 12>;
