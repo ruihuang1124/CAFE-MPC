@@ -4,13 +4,6 @@
 #include "HSDDP_CompoundTypes.h"
 #include "HSDDP_Utils.h"
 
-
-
-
-#ifdef TIME_BENCHMARK
-static int fit_iter = 0;
-#endif // TIME_BENCHMARK
-
 /*
     @brief: perform linear rollout to compute search direction for shooting state
             use before running hybrid rollout
@@ -112,9 +105,6 @@ std::pair<bool, int> MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
     bool rollout_success = true;
     int iter = 0;
 
-#ifdef TIME_BENCHMARK
-    fit_iter = 0;
-#endif
     while (eps > 1e-3)
     {        
         iter ++;
@@ -137,9 +127,7 @@ std::pair<bool, int> MultiPhaseDDP<T>::line_search(HSDDP_OPTION &option)
         }        
             
         eps *= option.alpha;
-#ifdef TIME_BENCHMARK
-        fit_iter++;
-#endif
+
     }
     return std::make_pair<bool, int>(std::move(success), std::move(iter));
 }
@@ -149,10 +137,6 @@ std::pair<bool, int> MultiPhaseDDP<T>::backward_sweep_regularized(T &regularizat
 {
     bool success = false;
     int iter = 0;
-
-#ifdef TIME_BENCHMARK
-    auto start = high_resolution_clock::now();
-#endif
 
     while (!success)
     {
@@ -173,14 +157,7 @@ std::pair<bool, int> MultiPhaseDDP<T>::backward_sweep_regularized(T &regularizat
             break;
         }
     }
-#ifdef TIME_BENCHMARK
-    stop = high_resolution_clock::now();
-    duration = duration_ms(stop - start);
-    time_per_iter.n_bws = iter;
-    time_per_iter.time_bws = duration.count();
-    time_per_iter.time_partial = time_partial;
-    time_per_iter.DDP_iter = iter;
-#endif
+    
     regularization = regularization / 20;
     if (regularization < 1e-06)
         regularization = 0;
@@ -401,28 +378,12 @@ void MultiPhaseDDP<T>::solve(HSDDP_OPTION& option, const float& max_cputime)
                 max_cputime_reached = true;                
                 break;
             }                           
-            
-#ifdef TIME_BENCHMARK
-            stop = high_resolution_clock::now();
-            duration = duration_ms(stop - start);
-            time_per_iter.n_fit = fit_iter;
-            time_per_iter.time_fit = duration.count();
-            time_ddp.push_back(time_per_iter);
-#endif      
+     
             cost_buffer.push_back(actual_cost);
             dyn_feas_buffer.push_back(feas);
             eqn_feas_buffer.push_back(max_tconstr);
             ineq_feas_buffer.push_back(max_pconstr);            
 
-#ifdef TIME_BENCHMARK
-            start = high_resolution_clock::now();
-#endif
-
-#ifdef TIME_BENCHMARK
-            stop = high_resolution_clock::now();
-            duration = duration_ms(stop - start);
-            time_partial = duration.count();
-#endif
         }       
 
 #ifdef DEBUG_MODE

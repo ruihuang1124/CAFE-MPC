@@ -9,11 +9,6 @@
 #include <cstring>
 
 
-#ifdef TIME_BENCHMARK
-extern std::vector<TIME_PER_ITERATION> time_ddp;
-#endif //TIME_BENCHMARK
-
-
 //  HSDDP parameters
 struct HSDDP_OPTION
 {
