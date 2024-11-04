@@ -26,7 +26,7 @@ void MHPCVisualization::publishWBTrajectory(const MHPCProblemData<double>* pdata
     {
         const int h = pdata->wb_phase_horizons[i];
         const auto& tau = pdata->wb_trajs[i];
-        std::copy(pdata->wb_phase_contacts[i].begin(), pdata->wb_phase_contacts[i].end(), phase_contact.data());
+        std::copy(pdata->wb_phase_contacts[i].data(), pdata->wb_phase_contacts[i].data() + pdata->wb_phase_contacts[i].size(), phase_contact.data());
         for (int k = 0; k < h; k++)
         {
             wbtraj_lcmt.sz ++;

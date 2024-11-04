@@ -244,23 +244,23 @@ void MHPCLocomotion<T>::publish_mpc_cmd()
         const Vec12<float>&Qu_k = trajs[pidx]->Qu[k_rel].template cast<float>();
         const MatMN<float, 12, 12>&Quu_k = trajs[pidx]->Quu[k_rel].template cast<float>();
         const MatMN<float, 12, 36>&Qux_k = trajs[pidx]->Qux[k_rel].template cast<float>();
-        const MatMN<float, 12, 36>&K_k = trajs[pidx]->K[k_rel].template cast<float>();        
+        const MatMN<float, 12, 36>&K_k = trajs[pidx]->K[k_rel].template cast<float>();
         
-        std::copy(u_k.begin(), u_k.end(), torque_k_float.data());
-        std::copy(x_k.begin(), x_k.begin() + 3, pos_k_float.data());
-        std::copy(x_k.begin() + 3, x_k.begin() + 6, eul_k_float.data());
-        std::copy(x_k.begin() + 6, x_k.begin() + 18, qJ_k_float.data());
-        std::copy(x_k.begin() + 18, x_k.begin() + 21, vWorld_k_float.data());
-        std::copy(x_k.begin() + 21, x_k.begin() + 24, eulrate_k_float.data());
-        std::copy(x_k.begin() + 24, x_k.end(), qJd_k_float.data());
-        std::copy(GRF_k.begin(), GRF_k.end(), GRF_k_float.data());
-        std::copy(Qu_k.begin(), Qu_k.end(), Qu_k_float.data());
+        std::copy(u_k.data(), u_k.data() + u_k.size(), torque_k_float.data());
+        std::copy(x_k.data(), x_k.data() + 3, pos_k_float.data());
+        std::copy(x_k.data() + 3, x_k.data() + 6, eul_k_float.data());
+        std::copy(x_k.data() + 6, x_k.data() + 18, qJ_k_float.data());
+        std::copy(x_k.data() + 18, x_k.data() + 21, vWorld_k_float.data());
+        std::copy(x_k.data() + 21, x_k.data() + 24, eulrate_k_float.data());
+        std::copy(x_k.data() + 24, x_k.data() + x_k.size(), qJd_k_float.data());
+        std::copy(GRF_k.data(), GRF_k.data() + GRF_k.size(), GRF_k_float.data());
+        std::copy(Qu_k.data(), Qu_k.data() + Qu_k.size(), Qu_k_float.data());
 
         std::copy(Quu_k.data(), Quu_k.data()+144, Quu_k_float.data());
         std::copy(Qux_k.data(), Qux_k.data()+432, Qux_k_float.data());
         std::copy(K_k.data(), K_k.data()+432, feedback_k_float.data());
-        std::copy(ctacts[pidx].begin(), ctacts[pidx].end(), contact_k.data());
-        std::copy(statusDurations[pidx].begin(), statusDurations[pidx].end(), statusDuration_k.data());
+        std::copy(ctacts[pidx].data(), ctacts[pidx].data() + ctacts[pidx].size(), contact_k.data());
+        std::copy(statusDurations[pidx].data(), statusDurations[pidx].data() + statusDurations[pidx].size(), statusDuration_k.data());
 
         mpc_cmd.pos.push_back(pos_k_float);
         mpc_cmd.eul.push_back(eul_k_float);

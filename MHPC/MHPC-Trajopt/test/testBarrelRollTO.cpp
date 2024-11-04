@@ -92,7 +92,7 @@ int main()
     {
         const int h = pdata.wb_phase_horizons[i];
         const auto& tau = pdata.wb_trajs[i];
-        std::copy(pdata.wb_phase_contacts[i].begin(), pdata.wb_phase_contacts[i].end(), phase_contact.data());
+        std::copy(pdata.wb_phase_contacts[i].data(), pdata.wb_phase_contacts[i].data() + pdata.wb_phase_contacts[i].size(), phase_contact.data());
         for (int k = 0; k < h; k++)
         {
             wbtraj_lcmt.sz ++;
@@ -213,17 +213,17 @@ void publish_command(const deque<shared_ptr<WBSingleTrajectory_d>>& trajs,
             const Vec12<float>&Qu_k = tau->Qu[k].template cast<float>();
             const MatMN<float, 12, 12>&Quu_k = tau->Quu[k].template cast<float>();
             const MatMN<float, 12, 36>&Qux_k = tau->Qux[k].template cast<float>();
-            const MatMN<float, 12, 36>&K_k = tau->K[k].template cast<float>(); 
+            const MatMN<float, 12, 36>&K_k = tau->K[k].template cast<float>();
 
-            std::copy(u_k.begin(), u_k.end(), torque_k_float.data());
-            std::copy(x_k.begin(), x_k.begin() + 3, pos_k_float.data());
-            std::copy(x_k.begin() + 3, x_k.begin() + 6, eul_k_float.data());
-            std::copy(x_k.begin() + 6, x_k.begin() + 18, qJ_k_float.data());
-            std::copy(x_k.begin() + 18, x_k.begin() + 21, vWorld_k_float.data());
-            std::copy(x_k.begin() + 21, x_k.begin() + 24, eulrate_k_float.data());
-            std::copy(x_k.begin() + 24, x_k.end(), qJd_k_float.data());
-            std::copy(GRF_k.begin(), GRF_k.end(), GRF_k_float.data());
-            std::copy(Qu_k.begin(), Qu_k.end(), Qu_k_float.data());
+            std::copy(u_k.data(), u_k.data() + u_k.size(), torque_k_float.data());
+            std::copy(x_k.data(), x_k.data() + 3, pos_k_float.data());
+            std::copy(x_k.data() + 3, x_k.data() + 6, eul_k_float.data());
+            std::copy(x_k.data() + 6, x_k.data() + 18, qJ_k_float.data());
+            std::copy(x_k.data() + 18, x_k.data() + 21, vWorld_k_float.data());
+            std::copy(x_k.data() + 21, x_k.data() + 24, eulrate_k_float.data());
+            std::copy(x_k.data() + 24, x_k.data() + x_k.size(), qJd_k_float.data());
+            std::copy(GRF_k.data(), GRF_k.data() + GRF_k.size(), GRF_k_float.data());
+            std::copy(Qu_k.data(), Qu_k.data() + Qu_k.size(), Qu_k_float.data());
     
             std::copy(Quu_k.data(), Quu_k.data()+144, Quu_k_float.data());
             std::copy(Qux_k.data(), Qux_k.data()+432, Qux_k_float.data());
