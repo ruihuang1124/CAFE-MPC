@@ -194,13 +194,13 @@ def flip_contact_left_right(contact):
 
 def write_traj_to_file(time, pos, eul, vel, eulrate, pf, vf, qJ, qJd, contact):
     base = np.hstack((eul, pos, eulrate, vel))   
-    np.savetxt("data/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
-    np.savetxt("data/body_state.csv", base, delimiter=",", fmt='%8.4f')
-    np.savetxt("data/ee_pos.csv", np.asarray(pf), delimiter=",", fmt='%8.4f')
-    np.savetxt("data/jnt.csv", np.asarray(qJ), delimiter=",", fmt='%8.4f')
-    np.savetxt("data/jntvel.csv", np.asarray(qJd), delimiter=",", fmt='%8.4f')    
-    np.savetxt("data/contact.csv", np.asarray(contact), delimiter=",", fmt='%u')
-    np.savetxt("data/ee_vel.csv", np.asarray(vf), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/time.csv", np.asarray(time), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/body_state.csv", base, delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/ee_pos.csv", np.asarray(pf), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/jnt.csv", np.asarray(qJ), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/jntvel.csv", np.asarray(qJd), delimiter=",", fmt='%8.4f')
+    np.savetxt("data/arcdog/contact.csv", np.asarray(contact), delimiter=",", fmt='%u')
+    np.savetxt("data/arcdog/ee_vel.csv", np.asarray(vf), delimiter=",", fmt='%8.4f')
 
 def publish_trajectory_lcm(time, pos_tau, eul_tau, vel_tau, eulrate_tau, 
                            jnt_tau, jntvel_tau, contact_tau):

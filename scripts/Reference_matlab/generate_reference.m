@@ -16,7 +16,16 @@ Gaits{11} = "Barrel/";
 Gaits{12} = "PreBarrelTrot/";
 Gaits{13} = "PreBarrelPace/";
 Gaits{14} = "PreBarrelPronk/";
+Gaits{15} = "arcdog_jump_1_task_trajectory_planner/";
+Gaits{16} = "task_trajectory_planner/";
+Gaits{17} = "arcdog/";
+Gaits{18} = "1/";
+Gaits{19} = "2/";
+Gaits{20} = "3/";
 gait_prepross_path = "PreProcessedData/";
+gait_prepross_path_1 = "/home/ray/log/";
+gait_prepross_path_2 = "/home/ray/Software/CAFE-MPC/scripts/Reference_python/data/";
+gait_prepross_path_3 = "/home/ray/log/task_trajectory_planner/task_trajectory_planner_csvfiles/";
 
 % First running stage of running barrel roll
 gait0_num = 7;
@@ -71,7 +80,13 @@ gait2.body_states(:,3) = 2*pi;
 gait = combine_two_gaits(gait, gait2);
 
 %% Regular locomotion gait
-gait = read_gait_from_file(gait_prepross_path + Gaits{5});
+gait = read_gait_from_file(gait_prepross_path + Gaits{15});
+
+gait = read_gait_from_file(gait_prepross_path_1 + Gaits{16});
+
+gait = read_gait_from_file(gait_prepross_path_2 + Gaits{17});
+
+gait = read_gait_from_file(gait_prepross_path_3 + Gaits{20});
 
 %% write to file
 write_gait_to_file(gait);
@@ -88,7 +103,7 @@ function write_gait_to_file(gait)
     if ~isfield(gait,"GRFs")
         gait.GRFs= zeros(tau_sz, 12);
         % Calculate the GRF reference
-        mass = 9; g = 10;
+        mass = 18; g = 10;
         for k = 1:tau_sz
             F = [0, 0, mass * g / sum(gait.contacts(k, :))];
             for leg = 1: 4
